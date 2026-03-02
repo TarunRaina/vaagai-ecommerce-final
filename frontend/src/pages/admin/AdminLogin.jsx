@@ -15,7 +15,7 @@ const AdminLogin = () => {
     setError('')
 
     try {
-      const response = await api.post('/api/token/', {
+      const response = await api.post('/token/', {
         username,
         password,
       })
@@ -25,7 +25,7 @@ const AdminLogin = () => {
         token: response.data.access,
       })
 
-      navigate('/admin')
+      navigate('/admin/dashboard')
     } catch (requestError) {
       setError('Invalid admin credentials')
     }
