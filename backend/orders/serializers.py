@@ -1,0 +1,64 @@
+from rest_framework import serializers
+from .models import Order, OrderItem
+from products.models import Product
+from django.db import transaction
+
+
+class OrderItemCreateSerializer(serializers.Serializer):
+    product_id = serializers.IntegerField()
+    quantity = serializers.IntegerField()
+
+
+class OrderCreateSerializer(serializers.Serializer):
+    items = OrderItemCreateSerializer(many=True)
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        items_data = validated_data['items']
+
+        with transaction.atomic():
+            order = Order.objects.create(user=user)
+
+            total_amount = 0
+
+            for item in items_data:
+                product = Product.objects.get(id=item['product_id'])
+
+                if product.stock < item['quantity']:
+                    raise serializers.ValidationError(
+                        f"Insufficient stock for {product.name}"
+                    )
+
+                product.stock -= item['quantity']
+                product.save()
+
+                price = product.price
+                total_price = price * item['quantity']
+                total_amount += total_price
+
+                OrderItem.objects.create(
+                    order=order,
+                    product=product,
+                    quantity=item['quantity'],
+                    price=price
+                )
+
+            order.total_amount = total_amount
+            order.save()
+
+        return order
+    
+class OrderItemSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source="product.name")
+
+    class Meta:
+        model = OrderItem
+        fields = ["id", "product", "product_name", "quantity", "price"]
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    items = OrderItemSerializer(many=True)
+
+    class Meta:
+        model = Order
+        fields = ["id", "total_amount", "status", "created_at", "items"]
