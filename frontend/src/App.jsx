@@ -1,4 +1,5 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import RoleProtectedRoute from './auth/RoleProtectedRoute'
 import LandingLayout from './layouts/LandingLayout'
 import CustomerLayout from './layouts/CustomerLayout'
 import AdminLayout from './layouts/AdminLayout'
@@ -29,9 +30,11 @@ function App() {
         <Route
           path="/admin"
           element={
-            <AdminLayout>
-              <AdminDashboard />
-            </AdminLayout>
+            <RoleProtectedRoute allowedRoles={["admin"]}>
+              <AdminLayout>
+                <AdminDashboard />
+              </AdminLayout>
+            </RoleProtectedRoute>
           }
         />
       </Routes>
