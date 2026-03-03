@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const [image, setImage] = useState(null);
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
 
@@ -17,7 +18,7 @@ const AdminDashboard = () => {
   const [message, setMessage] = useState("");
 
   const [editingId, setEditingId] = useState(null);
-  const [isError, setIsError] = useState(false)
+  const [isError, setIsError] = useState(false);
   // Fetch categories
   useEffect(() => {
     const fetchCategories = async () => {
@@ -46,12 +47,13 @@ const AdminDashboard = () => {
     e.preventDefault();
     setMessage("");
 
+    // ===== Validation =====
     if (
       name.trim() === "" ||
       description.trim() === "" ||
       category === "" ||
       price === "" ||
-      stock === ""
+      stock === "" || !image
     ) {
       setIsError(true);
       setMessage("All fields are required");
@@ -69,32 +71,39 @@ const AdminDashboard = () => {
       setMessage("Stock cannot be negative");
       return;
     }
+
     try {
+      // ===== Create FormData =====
+      const formData = new FormData();
+      formData.append("name", name);
+      formData.append("description", description);
+      formData.append("price", price);
+      formData.append("stock", stock);
+      formData.append("category_id", category);
+      formData.append("is_active", isActive);
+
+      if (image) {
+        formData.append("image", image);
+      }
+
+      // ===== API Call =====
       if (editingId) {
-        await api.put(`/products/update/${editingId}/`, {
-          name,
-          description,
-          price,
-          stock,
-          category_id: category,
-          is_active: isActive,
+        await api.put(`/products/update/${editingId}/`, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
         });
 
+        setIsError(false);
         setMessage("Product updated successfully!");
       } else {
-        await api.post("/products/create/", {
-          name,
-          description,
-          price,
-          stock,
-          category_id: category,
-          is_active: isActive,
+        await api.post("/products/create/", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
         });
 
+        setIsError(false);
         setMessage("Product added successfully!");
       }
 
-      // Reset form
+      // ===== Reset Form =====
       setEditingId(null);
       setName("");
       setDescription("");
@@ -102,15 +111,24 @@ const AdminDashboard = () => {
       setStock("");
       setCategory("");
       setIsActive(true);
-      setIsError(false);
+      setImage(null);
 
       fetchProducts();
     } catch (err) {
       console.error(err);
-      setMessage("Operation failed");
+      setIsError(true);
+
+      if (err.response && err.response.data) {
+        const errors = err.response.data;
+        const firstError = Object.values(errors)[0];
+        setMessage(
+          Array.isArray(firstError) ? firstError[0] : "Operation failed",
+        );
+      } else {
+        setMessage("Operation failed");
+      }
     }
   };
-
   const handleDelete = async (id) => {
     const confirmDelete = window.confirm(
       "Are you sure you want to delete this product?",
@@ -181,6 +199,15 @@ const AdminDashboard = () => {
             onChange={(e) => setStock(e.target.value)}
           />
         </div>
+        <div>
+          <label>Product Image</label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setImage(e.target.files[0])}
+            required
+          />
+        </div>
 
         <div>
           <label>
@@ -205,14 +232,14 @@ const AdminDashboard = () => {
               borderRadius: "6px",
               backgroundColor:
                 message.toLowerCase().includes("fail") ||
-                message.toLowerCase().includes("negative")
+                (message.toLowerCase().includes("negative") || isError)
                   ? "#ffe5e5"
-                  : "#e6ffed",
+                  : "#d3f0ce",
               color:
                 message.toLowerCase().includes("fail") ||
-                message.toLowerCase().includes("negative")
-                  ? "#b30000"
-                  : "#006600",
+                (message.toLowerCase().includes("negative") || isError)
+                  ? "#a0222a"
+                  : "#19ba19",
               fontWeight: "500",
             }}
           >
@@ -237,6 +264,7 @@ const AdminDashboard = () => {
               <th>Price</th>
               <th>Stock</th>
               <th>Stock Status</th>
+              <th>Image</th> {/* NEW COLUMN */}
               <th>Active</th>
               <th>Actions</th>
             </tr>
@@ -264,7 +292,22 @@ const AdminDashboard = () => {
                   )}
                 </td>
                 <td>{product.is_active ? "Yes" : "No"}</td>
-
+                <td>
+                  {product.image ? (
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      style={{
+                        width: "60px",
+                        height: "60px",
+                        objectFit: "cover",
+                        borderRadius: "6px",
+                      }}
+                    />
+                  ) : (
+                    <span style={{ color: "gray" }}>No Image</span>
+                  )}
+                </td>
                 <td>
                   <button
                     onClick={() =>
