@@ -9,7 +9,12 @@ import Landing from "./pages/Landing";
 import Dashboard from "./pages/customer/Dashboard";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminLogin from "./pages/admin/AdminLogin";
-import EditProduct from './pages/admin/EditProduct'
+import EditProduct from "./pages/admin/EditProduct";
+import Register from "./pages/customer/Register";
+import Login from "./pages/customer/Login";
+import Profile from "./pages/customer/Profile";
+import Wishlist from "./pages/customer/Wishlist";
+
 function App() {
   return (
     <BrowserRouter>
@@ -63,6 +68,27 @@ function App() {
                 <EditProduct />
               </AdminLayout>
             </RoleProtectedRoute>
+          }
+        />
+
+        <Route path="/register" element={<Register />} />
+        <Route path="/login" element={<Login />} />
+
+        <Route
+          path="/customer/profile"
+          element={
+            <CustomerLayout>
+              <Profile />
+            </CustomerLayout>
+          }
+        />
+
+        <Route
+          path="/customer/wishlist"
+          element={
+            <CustomerLayout>
+              <Wishlist />
+            </CustomerLayout>
           }
         />
       </Routes>

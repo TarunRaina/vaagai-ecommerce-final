@@ -1,40 +1,40 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import api from '../../api/axios'
-import { useAuth } from '../../auth/AuthContext'
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "../../api/axios";
+import { useAuth } from "../../auth/AuthContext";
 
 const AdminLogin = () => {
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const { login } = useAuth()
-  const navigate = useNavigate()
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (event) => {
-    event.preventDefault()
-    setError('')
+    event.preventDefault();
+    setError("");
 
     try {
-      const response = await api.post('/token/', {
-        username,
+      const response = await api.post("/token/", {
+        email: username,
         password,
-      })
+      });
 
       login({
-        user: { username, userType: 'admin' },
+        user: { username, userType: "admin" },
         token: response.data.access,
-      })
+      });
 
-      navigate('/admin/dashboard')
+      navigate("/admin/dashboard");
     } catch (requestError) {
-      setError('Invalid admin credentials')
+      setError("Invalid admin credentials");
     }
-  }
+  };
 
   return (
     <form onSubmit={handleSubmit}>
       <div>
-        <label htmlFor="username">Username</label>
+        <label htmlFor="username">Email</label>
         <input
           id="username"
           type="text"
@@ -59,7 +59,7 @@ const AdminLogin = () => {
 
       {error && <p>{error}</p>}
     </form>
-  )
-}
+  );
+};
 
-export default AdminLogin
+export default AdminLogin;
