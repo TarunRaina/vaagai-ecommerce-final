@@ -1,21 +1,19 @@
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import RoleProtectedRoute from "./auth/RoleProtectedRoute";
 
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
-import RoleProtectedRoute from './auth/RoleProtectedRoute'
+import LandingLayout from "./layouts/LandingLayout";
+import CustomerLayout from "./layouts/CustomerLayout";
+import AdminLayout from "./layouts/AdminLayout";
 
-import LandingLayout from './layouts/LandingLayout'
-import CustomerLayout from './layouts/CustomerLayout'
-import AdminLayout from './layouts/AdminLayout'
-
-import Landing from './pages/Landing'
-import Dashboard from './pages/customer/Dashboard'
-import AdminDashboard from './pages/admin/Dashboard'
-import AdminLogin from './pages/admin/AdminLogin'
-
+import Landing from "./pages/Landing";
+import Dashboard from "./pages/customer/Dashboard";
+import AdminDashboard from "./pages/admin/Dashboard";
+import AdminLogin from "./pages/admin/AdminLogin";
+import EditProduct from './pages/admin/EditProduct'
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-
         {/* Landing Page */}
         <Route
           path="/"
@@ -57,10 +55,19 @@ function App() {
             </RoleProtectedRoute>
           }
         />
-
+        <Route
+          path="/admin/products/edit/:id"
+          element={
+            <RoleProtectedRoute>
+              <AdminLayout>
+                <EditProduct />
+              </AdminLayout>
+            </RoleProtectedRoute>
+          }
+        />
       </Routes>
     </BrowserRouter>
-  )
+  );
 }
 
-export default App
+export default App;

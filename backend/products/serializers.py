@@ -16,9 +16,18 @@ class ProductSerializer(serializers.ModelSerializer):
         write_only=True
     )
 
+    def validate_price(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Price cannot be negative")
+        return value
+    def validate_stock(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Stock cannot be negative")
+        return value
     class Meta:
         model = Product
         fields = '__all__'
+    
 
 
 class WishlistSerializer(serializers.ModelSerializer):
@@ -32,3 +41,10 @@ class WishlistSerializer(serializers.ModelSerializer):
     class Meta:
         model = Wishlist
         fields = ['id', 'product', 'product_id', 'created_at']
+
+from .models import Category
+
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ['id', 'name']

@@ -12,11 +12,14 @@ from .views import (
     WishlistCreateView,
     WishlistDeleteView,
 )
+from .views import CategoryListView
 
 urlpatterns = [
     path('', ProductListView.as_view()),
     path('<int:pk>/', ProductDetailView.as_view()),
 
+
+    path('categories/', CategoryListView.as_view()),
     # Admin
     path('create/', ProductCreateView.as_view()),
     path('update/<int:pk>/', ProductUpdateView.as_view()),
@@ -26,4 +29,5 @@ urlpatterns = [
     path('wishlist/', WishlistListView.as_view()),
     path('wishlist/add/', WishlistCreateView.as_view()),
     path('wishlist/delete/<int:pk>/', WishlistDeleteView.as_view()),
+
 ]
