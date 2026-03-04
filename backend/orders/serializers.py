@@ -12,12 +12,25 @@ class OrderItemCreateSerializer(serializers.Serializer):
 class OrderCreateSerializer(serializers.Serializer):
     items = OrderItemCreateSerializer(many=True)
 
+    order_type = serializers.CharField()
+    installation_type = serializers.CharField()
+    delivery_method = serializers.CharField()
+    payment_method = serializers.CharField()
+    delivery_address = serializers.CharField(required=False, allow_blank=True)
+
     def create(self, validated_data):
         user = self.context['request'].user
         items_data = validated_data['items']
 
         with transaction.atomic():
-            order = Order.objects.create(user=user)
+            order = Order.objects.create(
+                        user=user,
+                        order_type=validated_data["order_type"],
+                        installation_type=validated_data["installation_type"],
+                        delivery_method=validated_data["delivery_method"],
+                        payment_method=validated_data["payment_method"],
+                        delivery_address=validated_data.get("delivery_address", "")
+                    )
 
             total_amount = 0
 

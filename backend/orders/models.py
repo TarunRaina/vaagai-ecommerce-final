@@ -48,6 +48,9 @@ class Order(models.Model):
 
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD)
 
+    # ⭐ NEW FIELD
+    delivery_address = models.TextField(blank=True, null=True)
+
     total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
 
     payment_status = models.CharField(
@@ -63,10 +66,7 @@ class Order(models.Model):
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Order {self.id} - {self.user.username}"
-
+    
 class OrderItem(models.Model):
 
     order = models.ForeignKey(

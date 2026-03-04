@@ -122,6 +122,7 @@ import { useEffect, useState } from "react";
 import api from "../../api/axios";
 import { useAuth } from "../../auth/AuthContext";
 import Notification from "../../components/Notification";
+import { useNavigate } from "react-router-dom"
 
 const Dashboard = () => {
   const { isAuthenticated, token } = useAuth();
@@ -132,6 +133,7 @@ const Dashboard = () => {
 
   const [notification, setNotification] = useState("");
   const [notifType, setNotifType] = useState("success");
+  const navigate = useNavigate()
 
   useEffect(() => {
     fetchProducts();
@@ -308,7 +310,11 @@ const Dashboard = () => {
                 <br />
                 <br />
 
-                <button onClick={() => handleOrder(product)}>Order</button>
+                <button
+                  onClick={() => navigate(`/customer/order/${product.id}`)}
+                >
+                  Order
+                </button>
               </div>
             ))}
           </div>
