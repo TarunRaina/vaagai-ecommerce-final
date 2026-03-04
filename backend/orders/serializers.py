@@ -47,7 +47,8 @@ class OrderCreateSerializer(serializers.Serializer):
             order.save()
 
         return order
-    
+
+
 class OrderItemSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source="product.name")
 
@@ -61,4 +62,11 @@ class OrderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
-        fields = ["id", "total_amount", "status", "created_at", "items"]
+        fields = [
+            "id",
+            "payment_status",
+            "received_status",
+            "total_amount",
+            "created_at",
+            "items",
+        ]

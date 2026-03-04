@@ -14,6 +14,7 @@ import Register from "./pages/customer/Register";
 import Login from "./pages/customer/Login";
 import Profile from "./pages/customer/Profile";
 import Wishlist from "./pages/customer/Wishlist";
+import Orders from "./pages/customer/Orders";
 
 function App() {
   return (
@@ -88,6 +89,15 @@ function App() {
           element={
             <CustomerLayout>
               <Wishlist />
+            </CustomerLayout>
+          }
+        />
+
+        <Route
+          path="/customer/orders"
+          element={
+            <CustomerLayout>
+              <Orders />
             </CustomerLayout>
           }
         />

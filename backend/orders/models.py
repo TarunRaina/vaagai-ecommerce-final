@@ -2,13 +2,36 @@ from django.db import models
 from django.conf import settings
 from products.models import Product
 
-
 class Order(models.Model):
 
-    STATUS_CHOICES = (
+    PAYMENT_STATUS = (
+        ('unpaid', 'Amount Unpaid'),
+        ('paid', 'Amount Paid'),
+    )
+
+    RECEIVED_STATUS = (
         ('pending', 'Pending'),
-        ('paid', 'Paid'),
-        ('cancelled', 'Cancelled'),
+        ('received', 'Received'),
+    )
+
+    ORDER_TYPE = (
+        ('individual', 'Individual'),
+        ('b2b', 'Business'),
+    )
+
+    INSTALLATION_TYPE = (
+        ('installation_required', 'Worker Installation Required'),
+        ('product_only', 'Product Only'),
+    )
+
+    DELIVERY_METHOD = (
+        ('home_delivery', 'Home Delivery'),
+        ('shop_pickup', 'Shop Pickup'),
+    )
+
+    PAYMENT_METHOD = (
+        ('cod', 'Cash On Delivery'),
+        ('razorpay', 'Razorpay'),
     )
 
     user = models.ForeignKey(
@@ -17,13 +40,32 @@ class Order(models.Model):
         related_name='orders'
     )
 
+    order_type = models.CharField(max_length=20, choices=ORDER_TYPE)
+
+    installation_type = models.CharField(max_length=30, choices=INSTALLATION_TYPE)
+
+    delivery_method = models.CharField(max_length=20, choices=DELIVERY_METHOD)
+
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD)
+
     total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+
+    payment_status = models.CharField(
+        max_length=20,
+        choices=PAYMENT_STATUS,
+        default='unpaid'
+    )
+
+    received_status = models.CharField(
+        max_length=20,
+        choices=RECEIVED_STATUS,
+        default='pending'
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"Order {self.id} - {self.user.username}"
-
 
 class OrderItem(models.Model):
 

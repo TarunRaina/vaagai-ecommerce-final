@@ -118,36 +118,36 @@
 // };
 
 // export default Dashboard;
-import { useEffect, useState } from "react"
-import api from "../../api/axios"
-import { useAuth } from "../../auth/AuthContext"
-import Notification from "../../components/Notification"
+import { useEffect, useState } from "react";
+import api from "../../api/axios";
+import { useAuth } from "../../auth/AuthContext";
+import Notification from "../../components/Notification";
 
 const Dashboard = () => {
-  const { isAuthenticated, token } = useAuth()
+  const { isAuthenticated, token } = useAuth();
 
-  const [products, setProducts] = useState([])
-  const [groupedProducts, setGroupedProducts] = useState({})
-  const [wishlistIds, setWishlistIds] = useState(new Set())
+  const [products, setProducts] = useState([]);
+  const [groupedProducts, setGroupedProducts] = useState({});
+  const [wishlistIds, setWishlistIds] = useState(new Set());
 
-  const [notification, setNotification] = useState("")
-  const [notifType, setNotifType] = useState("success")
+  const [notification, setNotification] = useState("");
+  const [notifType, setNotifType] = useState("success");
 
   useEffect(() => {
-    fetchProducts()
+    fetchProducts();
     if (isAuthenticated) {
-      fetchWishlist()
+      fetchWishlist();
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated]);
 
   const fetchProducts = async () => {
     try {
-      const response = await api.get("/products/")
-      groupByCategory(response.data)
+      const response = await api.get("/products/");
+      groupByCategory(response.data);
     } catch (err) {
-      console.error("Failed to fetch products")
+      console.error("Failed to fetch products");
     }
-  }
+  };
 
   const fetchWishlist = async () => {
     try {
@@ -155,43 +155,42 @@ const Dashboard = () => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      })
+      });
 
-      const ids = new Set(response.data.map(item => item.product.id))
-      setWishlistIds(ids)
-
+      const ids = new Set(response.data.map((item) => item.product.id));
+      setWishlistIds(ids);
     } catch (err) {
-      console.error("Failed to fetch wishlist")
+      console.error("Failed to fetch wishlist");
     }
-  }
+  };
 
   const groupByCategory = (productsList) => {
-    const grouped = {}
+    const grouped = {};
 
     productsList.forEach((product) => {
-      const categoryName = product.category?.name || "Others"
+      const categoryName = product.category?.name || "Others";
 
       if (!grouped[categoryName]) {
-        grouped[categoryName] = []
+        grouped[categoryName] = [];
       }
 
-      grouped[categoryName].push(product)
-    })
+      grouped[categoryName].push(product);
+    });
 
-    setGroupedProducts(grouped)
-  }
+    setGroupedProducts(grouped);
+  };
 
   const handleWishlist = async (productId) => {
     if (!isAuthenticated) {
-      setNotifType("error")
-      setNotification("Please login to add to wishlist")
-      return
+      setNotifType("error");
+      setNotification("Please login to add to wishlist");
+      return;
     }
 
     if (wishlistIds.has(productId)) {
-      setNotifType("error")
-      setNotification("Already in wishlist")
-      return
+      setNotifType("error");
+      setNotification("Already in wishlist");
+      return;
     }
 
     try {
@@ -202,19 +201,59 @@ const Dashboard = () => {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
-      )
+        },
+      );
 
-      setWishlistIds(prev => new Set(prev).add(productId))
+      setWishlistIds((prev) => new Set(prev).add(productId));
 
-      setNotifType("success")
-      setNotification("Added to wishlist")
-
+      setNotifType("success");
+      setNotification("Added to wishlist");
     } catch (err) {
-      setNotifType("error")
-      setNotification("Failed to add to wishlist")
+      setNotifType("error");
+      setNotification("Failed to add to wishlist");
     }
-  }
+  };
+
+  const handleOrder = async (product) => {
+    if (!isAuthenticated) {
+      setNotifType("error");
+      setNotification("Please login to place order");
+      return;
+    }
+
+    if (product.stock === 0) {
+      setNotifType("error");
+      setNotification("Product out of stock");
+      return;
+    }
+
+    try {
+      await api.post(
+        "/orders/create/",
+        {
+          items: [
+            {
+              product_id: product.id,
+              quantity: 1,
+            },
+          ],
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      setNotifType("success");
+      setNotification("Order placed successfully");
+
+      fetchProducts();
+    } catch (err) {
+      setNotifType("error");
+      setNotification("Failed to place order");
+    }
+  };
 
   return (
     <div>
@@ -239,7 +278,11 @@ const Dashboard = () => {
                   <img
                     src={product.image}
                     alt={product.name}
-                    style={{ width: "100%", height: "150px", objectFit: "cover" }}
+                    style={{
+                      width: "100%",
+                      height: "150px",
+                      objectFit: "cover",
+                    }}
                   />
                 )}
 
@@ -250,8 +293,8 @@ const Dashboard = () => {
                   {product.stock === 0
                     ? "Out of Stock"
                     : product.stock < 5
-                    ? "Low Stock"
-                    : "Available"}
+                      ? "Low Stock"
+                      : "Available"}
                 </p>
 
                 {wishlistIds.has(product.id) ? (
@@ -262,9 +305,10 @@ const Dashboard = () => {
                   </button>
                 )}
 
-                <br /><br />
+                <br />
+                <br />
 
-                <button>Order</button>
+                <button onClick={() => handleOrder(product)}>Order</button>
               </div>
             ))}
           </div>
@@ -277,7 +321,7 @@ const Dashboard = () => {
         onClose={() => setNotification("")}
       />
     </div>
-  )
-}
+  );
+};
 
-export default Dashboard
+export default Dashboard;
