@@ -16,6 +16,7 @@ import Profile from "./pages/customer/Profile";
 import Wishlist from "./pages/customer/Wishlist";
 import Orders from "./pages/customer/Orders";
 import OrderForm from "./pages/customer/OrderForm";
+import AdminOrders from "./pages/admin/Orders";
 
 function App() {
   return (
@@ -109,6 +110,17 @@ function App() {
             <CustomerLayout>
               <OrderForm />
             </CustomerLayout>
+          }
+        />
+
+        <Route
+          path="/admin/orders"
+          element={
+            <RoleProtectedRoute allowedRoles={["admin"]}>
+              <AdminLayout>
+                <AdminOrders />
+              </AdminLayout>
+            </RoleProtectedRoute>
           }
         />
       </Routes>

@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from .serializers import OrderCreateSerializer, OrderSerializer
 from .models import Order
 
+from rest_framework.permissions import IsAdminUser
 
 # Create order
 class OrderCreateView(generics.CreateAPIView):
@@ -60,3 +61,11 @@ class CustomerMarkReceivedView(generics.UpdateAPIView):
         order.save()
 
         return Response({"message": "Order marked as received"})
+    
+
+class AdminOrderListView(generics.ListAPIView):
+    serializer_class = OrderSerializer
+    permission_classes = [IsAdminUser]
+
+    def get_queryset(self):
+        return Order.objects.all().order_by("-created_at")

@@ -71,12 +71,21 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 
 class OrderSerializer(serializers.ModelSerializer):
+
     items = OrderItemSerializer(many=True)
+
+    user_email = serializers.CharField(source="user.email")
 
     class Meta:
         model = Order
         fields = [
             "id",
+            "user_email",
+            "order_type",
+            "installation_type",
+            "delivery_method",
+            "payment_method",
+            "delivery_address",
             "payment_status",
             "received_status",
             "total_amount",

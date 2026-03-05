@@ -4,6 +4,7 @@ from .views import (
     OrderListView,
     AdminMarkPaidView,
     CustomerMarkReceivedView,
+    AdminOrderListView,
 )
 
 urlpatterns = [
@@ -15,4 +16,5 @@ urlpatterns = [
 
     # Customer
     path("mark-received/<int:pk>/", CustomerMarkReceivedView.as_view()),
+    path("admin/all/", AdminOrderListView.as_view()),
 ]
