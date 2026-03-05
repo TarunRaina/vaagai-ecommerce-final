@@ -122,18 +122,41 @@ import { useEffect, useState } from "react";
 import api from "../../api/axios";
 import { useAuth } from "../../auth/AuthContext";
 import Notification from "../../components/Notification";
-import { useNavigate } from "react-router-dom"
+import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 
 const Dashboard = () => {
   const { isAuthenticated, token } = useAuth();
 
   const [products, setProducts] = useState([]);
-  const [groupedProducts, setGroupedProducts] = useState({});
+
   const [wishlistIds, setWishlistIds] = useState(new Set());
 
+  // const [searchTerm, setSearchTerm] = useState("");
   const [notification, setNotification] = useState("");
   const [notifType, setNotifType] = useState("success");
-  const navigate = useNavigate()
+  const navigate = useNavigate();
+
+  const location = useLocation();
+
+  const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+
+    const searchValue = queryParams.get("search") || "";
+
+    setSearchTerm(searchValue);
+  }, [location.search]);
+
+  const filteredProducts = products.filter((product) => {
+    const search = searchTerm.toLowerCase();
+
+    return (
+      product.name.toLowerCase().includes(search) ||
+      product.category.name.toLowerCase().includes(search)
+    );
+  });
 
   useEffect(() => {
     fetchProducts();
@@ -142,10 +165,12 @@ const Dashboard = () => {
     }
   }, [isAuthenticated]);
 
+  
+
   const fetchProducts = async () => {
     try {
       const response = await api.get("/products/");
-      groupByCategory(response.data);
+      setProducts(response.data);
     } catch (err) {
       console.error("Failed to fetch products");
     }
@@ -166,21 +191,17 @@ const Dashboard = () => {
     }
   };
 
-  const groupByCategory = (productsList) => {
-    const grouped = {};
+  const groupedProducts = filteredProducts.reduce((grouped, product) => {
+    const categoryName = product.category?.name || "Others";
 
-    productsList.forEach((product) => {
-      const categoryName = product.category?.name || "Others";
+    if (!grouped[categoryName]) {
+      grouped[categoryName] = [];
+    }
 
-      if (!grouped[categoryName]) {
-        grouped[categoryName] = [];
-      }
+    grouped[categoryName].push(product);
 
-      grouped[categoryName].push(product);
-    });
-
-    setGroupedProducts(grouped);
-  };
+    return grouped;
+  }, {});
 
   const handleWishlist = async (productId) => {
     if (!isAuthenticated) {

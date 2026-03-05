@@ -54,3 +54,17 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['user_type'] = user.user_type
 
         return token
+    
+class UserSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "full_name",
+            "email",
+            "mobile_number",
+            "address",
+            "is_business_account",
+            "profile_image",
+        ]

@@ -31,8 +31,18 @@ const Login = () => {
 
       const accessToken = response.data.access;
 
+      // Decode JWT
+      const payload = JSON.parse(atob(accessToken.split(".")[1]));
+
+      // Check role
+      if (payload.user_type !== "customer") {
+        setIsError(true);
+        setMessage("Admin accounts must login from admin portal.");
+        return;
+      }
+
       login({
-        user: { email },
+        user: { email: payload.email, userType: payload.user_type },
         token: accessToken,
       });
 

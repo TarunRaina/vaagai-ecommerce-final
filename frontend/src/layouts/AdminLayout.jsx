@@ -34,50 +34,52 @@
 // };
 
 // export default AdminLayout;
-import { useNavigate } from "react-router-dom"
-import { useAuth } from "../auth/AuthContext"
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext";
 
 const AdminLayout = ({ children }) => {
-
-  const navigate = useNavigate()
-  const { logout } = useAuth()
+  const navigate = useNavigate();
+  const { logout } = useAuth();
 
   return (
     <div>
-
-      <div style={{ display: "flex", justifyContent: "space-between", padding: "10px", borderBottom: "1px solid #ccc" }}>
-
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          padding: "10px",
+          borderBottom: "1px solid #ccc",
+        }}
+      >
         <div>
           <strong>Welcome, Vaagai Admin</strong>
         </div>
 
         <div>
-
           <button onClick={() => navigate("/admin/dashboard")}>
             Inventory
           </button>
 
-          <button onClick={() => navigate("/admin/orders")}>
-            Orders
+          <button onClick={() => navigate("/admin/orders")}>Orders</button>
+
+          <button onClick={() => navigate("/admin/appointments")}>
+            Appointments
           </button>
 
-          <button onClick={() => {
-            logout()
-            navigate("/")
-          }}>
+          <button
+            onClick={() => {
+              logout();
+              navigate("/");
+            }}
+          >
             Logout
           </button>
-
         </div>
-
       </div>
 
-      <div style={{ padding: "20px" }}>
-        {children}
-      </div>
-
+      <div style={{ padding: "20px" }}>{children}</div>
     </div>
-  )
-}
+  );
+};
 
-export default AdminLayout
+export default AdminLayout;

@@ -20,9 +20,20 @@ const AdminLogin = () => {
         password,
       });
 
+      const accessToken = response.data.access;
+
+      // Decode JWT
+      const payload = JSON.parse(atob(accessToken.split(".")[1]));
+
+      // Check role
+      if (payload.user_type !== "admin") {
+        setError("Only admin accounts can login here");
+        return;
+      }
+
       login({
-        user: { username, userType: "admin" },
-        token: response.data.access,
+        user: { email: payload.email, userType: payload.user_type },
+        token: accessToken,
       });
 
       navigate("/admin/dashboard");

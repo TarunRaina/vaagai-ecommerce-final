@@ -12,11 +12,14 @@ import AdminLogin from "./pages/admin/AdminLogin";
 import EditProduct from "./pages/admin/EditProduct";
 import Register from "./pages/customer/Register";
 import Login from "./pages/customer/Login";
-import Profile from "./pages/customer/Profile";
+// import Profile from "./pages/customer/Profile";
 import Wishlist from "./pages/customer/Wishlist";
 import Orders from "./pages/customer/Orders";
 import OrderForm from "./pages/customer/OrderForm";
 import AdminOrders from "./pages/admin/Orders";
+import Appointments from "./pages/customer/Appointments";
+import AdminAppointments from "./pages/admin/Appointments";
+import Profile from "./pages/customer/Profile";
 
 function App() {
   return (
@@ -121,6 +124,35 @@ function App() {
                 <AdminOrders />
               </AdminLayout>
             </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/customer/appointments"
+          element={
+            <CustomerLayout>
+              <Appointments />
+            </CustomerLayout>
+          }
+        />
+
+        <Route
+          path="/admin/appointments"
+          element={
+            <RoleProtectedRoute allowedRoles={["admin"]}>
+              <AdminLayout>
+                <AdminAppointments />
+              </AdminLayout>
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/customer/profile"
+          element={
+            <CustomerLayout>
+              <Profile />
+            </CustomerLayout>
           }
         />
       </Routes>
