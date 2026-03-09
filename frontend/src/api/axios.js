@@ -5,11 +5,24 @@ const api = axios.create({
 })
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken')
+  const token = sessionStorage.getItem('accessToken')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
   return config
 })
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      sessionStorage.removeItem('accessToken');
+      console.warn("Session expired or invalid, logging out...");
+      // Optional: force a page reload to clear state and redirect
+      // window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+)
 
 export default api

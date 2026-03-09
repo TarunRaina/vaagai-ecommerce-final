@@ -24,6 +24,7 @@ class User(AbstractUser):
     mobile_number = models.CharField(max_length=15)
 
     is_business_account = models.BooleanField(default=False)
+    is_verified_business = models.BooleanField(default=False)
 
     profile_image = models.ImageField(
         upload_to='profiles/',

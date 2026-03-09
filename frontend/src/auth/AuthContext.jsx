@@ -60,16 +60,17 @@ const AuthContext = createContext(null)
 
 export const AuthProvider = ({ children }) => {
 
-  const [token, setToken] = useState(() => localStorage.getItem(ACCESS_TOKEN_KEY))
+  const [token, setToken] = useState(() => sessionStorage.getItem(ACCESS_TOKEN_KEY))
 
   const [user, setUser] = useState(() => {
-    const storedToken = localStorage.getItem(ACCESS_TOKEN_KEY)
+    const storedToken = sessionStorage.getItem(ACCESS_TOKEN_KEY)
 
     if (storedToken) {
       try {
         const payload = JSON.parse(atob(storedToken.split('.')[1]))
         return {
-          email: payload.email
+          email: payload.email,
+          user_type: payload.user_type
         }
       } catch {
         return null
@@ -79,22 +80,23 @@ export const AuthProvider = ({ children }) => {
     return null
   })
 
-  const login = ({ user: nextUser, token: nextToken }) => {
+  const login = (nextToken, nextUser) => {
     setUser(nextUser ?? null)
     setToken(nextToken ?? null)
 
     if (nextToken) {
-      localStorage.setItem(ACCESS_TOKEN_KEY, nextToken)
+      sessionStorage.setItem(ACCESS_TOKEN_KEY, nextToken)
     }
   }
 
   const logout = () => {
     setUser(null)
     setToken(null)
-    localStorage.removeItem(ACCESS_TOKEN_KEY)
+    sessionStorage.removeItem(ACCESS_TOKEN_KEY)
   }
 
   const isAuthenticated = Boolean(token)
+  const userType = user?.user_type ?? null
 
   const value = useMemo(
     () => ({
@@ -103,8 +105,9 @@ export const AuthProvider = ({ children }) => {
       login,
       logout,
       isAuthenticated,
+      userType
     }),
-    [user, token, isAuthenticated]
+    [user, token, isAuthenticated, userType]
   )
 
   return (

@@ -34,6 +34,12 @@ class OrderCreateSerializer(serializers.Serializer):
 
             total_amount = 0
 
+            # Fetch B2B Settings
+            from b2b.models import B2BDiscountSettings
+            b2b_settings, _ = B2BDiscountSettings.objects.get_or_create(id=1)
+            
+            is_b2b = user.is_verified_business
+
             for item in items_data:
                 product = Product.objects.get(id=item['product_id'])
 
@@ -46,6 +52,16 @@ class OrderCreateSerializer(serializers.Serializer):
                 product.save()
 
                 price = product.price
+                
+                # Apply B2B Discounts
+                if is_b2b:
+                    if item['quantity'] >= b2b_settings.bulk_threshold:
+                        discount = b2b_settings.bulk_discount_percent
+                    else:
+                        discount = b2b_settings.base_discount_percent
+                    
+                    price = price * (1 - (discount / 100))
+
                 total_price = price * item['quantity']
                 total_amount += total_price
 
@@ -71,16 +87,19 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 
 class OrderSerializer(serializers.ModelSerializer):
-
     items = OrderItemSerializer(many=True)
-
-    user_email = serializers.CharField(source="user.email")
+    user_email = serializers.CharField(source="user.email", read_only=True)
+    user_name = serializers.CharField(source="user.full_name", read_only=True)
+    user_phone = serializers.CharField(source="user.mobile_number", read_only=True)
+    total_items = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
         fields = [
             "id",
             "user_email",
+            "user_name",
+            "user_phone",
             "order_type",
             "installation_type",
             "delivery_method",
@@ -89,6 +108,10 @@ class OrderSerializer(serializers.ModelSerializer):
             "payment_status",
             "received_status",
             "total_amount",
+            "total_items",
             "created_at",
             "items",
         ]
+
+    def get_total_items(self, obj):
+        return sum(item.quantity for item in obj.items.all())

@@ -5,6 +5,7 @@ from .views import (
     AdminMarkPaidView,
     CustomerMarkReceivedView,
     AdminOrderListView,
+    AdminMarkReceivedView, # Added AdminMarkReceivedView to imports
 )
 
 urlpatterns = [
@@ -13,6 +14,7 @@ urlpatterns = [
 
     # Admin
     path("admin/mark-paid/<int:pk>/", AdminMarkPaidView.as_view()),
+    path("admin/mark-received/<int:pk>/", AdminMarkReceivedView.as_view()), # Added AdminMarkReceivedView URL pattern
 
     # Customer
     path("mark-received/<int:pk>/", CustomerMarkReceivedView.as_view()),

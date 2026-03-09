@@ -1,164 +1,137 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../../api/axios";
 
 const Register = () => {
   const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    email: "",
+    full_name: "",
+    mobile_number: "",
+    address: "",
+    password: "",
+    confirm_password: "",
+    is_business_account: false
+  });
 
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [mobileNumber, setMobileNumber] = useState("");
-  const [address, setAddress] = useState("");
-  const [isBusiness, setIsBusiness] = useState(false);
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const [message, setMessage] = useState("");
-  const [isError, setIsError] = useState(false);
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
 
-  const handleSubmit = async (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
-    setMessage("");
+    setError("");
 
-    // Basic validation
-    if (
-      fullName.trim() === "" ||
-      email.trim() === "" ||
-      mobileNumber.trim() === "" ||
-      password.trim() === "" ||
-      confirmPassword.trim() === ""
-    ) {
-      setIsError(true);
-      setMessage("All required fields must be filled.");
+    if (formData.password !== formData.confirm_password) {
+      setError("Passwords do not match");
       return;
     }
 
-    if (password !== confirmPassword) {
-      setIsError(true);
-      setMessage("Passwords do not match.");
-      return;
-    }
-
+    setLoading(true);
     try {
-      await api.post("/register/", {
-        email,
-        full_name: fullName,
-        mobile_number: mobileNumber,
-        address,
-        is_business_account: isBusiness,
-        password,
-        confirm_password: confirmPassword,
-      });
-
-      setIsError(false);
-      setMessage("Registration successful! Redirecting to login...");
-
-      setTimeout(() => {
-        navigate("/login");
-      }, 1500);
-
+      await api.post("/register/", formData);
+      alert("Registration successful! Please login.");
+      navigate("/login");
     } catch (err) {
-      setIsError(true);
-
-      if (err.response && err.response.data) {
-        const errors = err.response.data;
-        const firstError = Object.values(errors)[0];
-        setMessage(
-          Array.isArray(firstError) ? firstError[0] : "Registration failed"
-        );
-      } else {
-        setMessage("Registration failed");
-      }
+      setError(err.response?.data?.detail || "Registration failed. Please check your details.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div>
-      <h2>Customer Registration</h2>
-
-      <form onSubmit={handleSubmit} noValidate>
-
-        <div>
-          <label>Full Name *</label>
-          <input
-            type="text"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-          />
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'linear-gradient(135deg, #EDE8D8 0%, var(--bg-main) 50%, var(--bg-surface-elevated) 100%)',
+      padding: '40px 20px'
+    }}>
+      <div className="glass-panel animate-fade" style={{
+        width: '100%',
+        maxWidth: '600px',
+        padding: '60px 50px',
+        borderRadius: '32px',
+      }}>
+        <div style={{ textAlign: 'center', marginBottom: '50px' }}>
+          <h1 style={{ fontSize: '2.5rem', color: 'var(--primary)', marginBottom: '10px' }}>JOIN VAAGAI</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>Experience the summit of premium furniture.</p>
         </div>
 
-        <div>
-          <label>Email *</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </div>
-
-        <div>
-          <label>Mobile Number *</label>
-          <input
-            type="text"
-            value={mobileNumber}
-            onChange={(e) => setMobileNumber(e.target.value)}
-          />
-        </div>
-
-        <div>
-          <label>Address</label>
-          <textarea
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-          />
-        </div>
-
-        <div>
-          <label>
-            <input
-              type="checkbox"
-              checked={isBusiness}
-              onChange={(e) => setIsBusiness(e.target.checked)}
-            />
-            Business Account
-          </label>
-        </div>
-
-        <div>
-          <label>Password *</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </div>
-
-        <div>
-          <label>Confirm Password *</label>
-          <input
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-          />
-        </div>
-
-        <button type="submit">Register</button>
-
-        {message && (
-          <div
-            style={{
-              marginTop: "15px",
-              padding: "10px 15px",
-              borderRadius: "6px",
-              backgroundColor: isError ? "#ffe5e5" : "#e6ffed",
-              color: isError ? "#b30000" : "#006600",
-              fontWeight: "500",
-            }}
-          >
-            {message}
+        <form onSubmit={handleRegister}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px', marginBottom: '25px' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-dim)', textTransform: 'uppercase' }}>Full Name</label>
+              <input name="full_name" value={formData.full_name} onChange={handleChange} placeholder="John Doe" required />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-dim)', textTransform: 'uppercase' }}>Email</label>
+              <input name="email" type="email" value={formData.email} onChange={handleChange} placeholder="john@example.com" required />
+            </div>
           </div>
-        )}
-      </form>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px', marginBottom: '25px' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-dim)', textTransform: 'uppercase' }}>Mobile</label>
+              <input name="mobile_number" value={formData.mobile_number} onChange={handleChange} placeholder="+91..." required />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-dim)', textTransform: 'uppercase' }}>Account Type</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '15px', height: '50px', background: 'var(--bg-surface)', borderRadius: '8px', padding: '0 15px', border: '1px solid var(--border-strong)' }}>
+                <input
+                  name="is_business_account"
+                  type="checkbox"
+                  checked={formData.is_business_account}
+                  onChange={handleChange}
+                  style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: '0.9rem', color: 'var(--text-main)', fontWeight: '600' }}>B2B Account</span>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '25px' }}>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-dim)', textTransform: 'uppercase' }}>Office/Home Address</label>
+            <textarea name="address" value={formData.address} onChange={handleChange} placeholder="Street, City, State..." style={{ height: '80px' }} required />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px', marginBottom: '40px' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-dim)', textTransform: 'uppercase' }}>Password</label>
+              <input name="password" type="password" value={formData.password} onChange={handleChange} placeholder="••••••••" required />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-dim)', textTransform: 'uppercase' }}>Confirm</label>
+              <input name="confirm_password" type="password" value={formData.confirm_password} onChange={handleChange} placeholder="••••••••" required />
+            </div>
+          </div>
+
+          {error && (
+            <div style={{ background: 'rgba(255, 68, 68, 0.1)', color: '#ff4444', padding: '15px', borderRadius: '10px', marginBottom: '30px', textAlign: 'center', fontWeight: '600', border: '1px solid rgba(255, 68, 68, 0.2)' }}>
+              {error}
+            </div>
+          )}
+
+          <button type="submit" className="btn-premium" style={{ width: '100%', padding: '18px', fontSize: '1.2rem' }} disabled={loading}>
+            {loading ? "CREATING ACCOUNT..." : "CREATE ACCOUNT"}
+          </button>
+        </form>
+
+        <p style={{ color: 'var(--text-muted)', marginTop: '35px', textAlign: 'center' }}>
+          Already have an account?{" "}
+          <Link to="/login" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: '700' }}>
+            Log in now
+          </Link>
+        </p>
+      </div>
     </div>
   );
 };

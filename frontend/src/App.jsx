@@ -9,10 +9,11 @@ import Landing from "./pages/Landing";
 import Dashboard from "./pages/customer/Dashboard";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminLogin from "./pages/admin/AdminLogin";
+import Users from "./pages/admin/Users";
+import ManageProducts from "./pages/admin/ManageProducts";
 import EditProduct from "./pages/admin/EditProduct";
 import Register from "./pages/customer/Register";
 import Login from "./pages/customer/Login";
-// import Profile from "./pages/customer/Profile";
 import Wishlist from "./pages/customer/Wishlist";
 import Orders from "./pages/customer/Orders";
 import OrderForm from "./pages/customer/OrderForm";
@@ -20,6 +21,10 @@ import AdminOrders from "./pages/admin/Orders";
 import Appointments from "./pages/customer/Appointments";
 import AdminAppointments from "./pages/admin/Appointments";
 import Profile from "./pages/customer/Profile";
+import B2BApprovals from "./pages/admin/B2BApprovals";
+import B2BSettings from "./pages/admin/B2BSettings";
+import ProductDetail from "./pages/customer/ProductDetail";
+import AnalyticsDashboard from "./pages/admin/analytics/Index";
 
 function App() {
   return (
@@ -45,6 +50,15 @@ function App() {
           }
         />
 
+        <Route
+          path="/product/:id"
+          element={
+            <CustomerLayout>
+              <ProductDetail />
+            </CustomerLayout>
+          }
+        />
+
         {/* Admin Login (Public) */}
         <Route
           path="/admin"
@@ -56,6 +70,26 @@ function App() {
         />
 
         {/* Admin Dashboard (Protected) */}
+        <Route
+          path="/admin/users"
+          element={
+            <RoleProtectedRoute allowedRoles={["admin"]}>
+              <AdminLayout>
+                <Users />
+              </AdminLayout>
+            </RoleProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/products"
+          element={
+            <RoleProtectedRoute allowedRoles={["admin"]}>
+              <AdminLayout>
+                <ManageProducts />
+              </AdminLayout>
+            </RoleProtectedRoute>
+          }
+        />
         <Route
           path="/admin/dashboard"
           element={
@@ -69,7 +103,7 @@ function App() {
         <Route
           path="/admin/products/edit/:id"
           element={
-            <RoleProtectedRoute>
+            <RoleProtectedRoute allowedRoles={["admin"]}>
               <AdminLayout>
                 <EditProduct />
               </AdminLayout>
@@ -148,11 +182,35 @@ function App() {
         />
 
         <Route
-          path="/customer/profile"
+          path="/admin/b2b-approvals"
           element={
-            <CustomerLayout>
-              <Profile />
-            </CustomerLayout>
+            <RoleProtectedRoute allowedRoles={["admin"]}>
+              <AdminLayout>
+                <B2BApprovals />
+              </AdminLayout>
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/b2b-settings"
+          element={
+            <RoleProtectedRoute allowedRoles={["admin"]}>
+              <AdminLayout>
+                <B2BSettings />
+              </AdminLayout>
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/analytics"
+          element={
+            <RoleProtectedRoute allowedRoles={["admin"]}>
+              <AdminLayout>
+                <AnalyticsDashboard />
+              </AdminLayout>
+            </RoleProtectedRoute>
           }
         />
       </Routes>

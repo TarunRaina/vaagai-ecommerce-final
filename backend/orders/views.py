@@ -69,3 +69,15 @@ class AdminOrderListView(generics.ListAPIView):
 
     def get_queryset(self):
         return Order.objects.all().order_by("-created_at")
+
+
+class AdminMarkReceivedView(generics.UpdateAPIView):
+    permission_classes = [IsAdminUser]
+    queryset = Order.objects.all()
+
+    def patch(self, request, pk):
+        order = self.get_object()
+        order.received_status = "received"
+        order.save()
+
+        return Response({"message": "Order marked as received"})

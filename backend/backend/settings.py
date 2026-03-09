@@ -46,6 +46,8 @@ INSTALLED_APPS = [
     'products',
     'orders',
     'appointments',
+    'b2b',
+    'analytics',
 ]
 
 MIDDLEWARE = [
@@ -89,9 +91,9 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'vaagai_db',
         'USER': 'postgres',
-        'PASSWORD': '2005',
-        'HOST': 'localhost',
-        'PORT': '5433',
+        'PASSWORD': 'trem691$',
+        'HOST': '127.0.0.1',
+        'PORT': '5432',
     }
 }
 

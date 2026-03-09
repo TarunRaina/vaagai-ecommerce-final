@@ -29,6 +29,12 @@ class Appointment(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
 
+    admin_reason = models.TextField(blank=True, null=True)
+    user_note = models.TextField(blank=True, null=True)
+
+    is_seen_by_admin = models.BooleanField(default=False)
+    is_seen_by_user = models.BooleanField(default=True) # User books, so user has seen it.
+
     def __str__(self):
         return f"{self.user.username} - {self.date} {self.time}"
     def check_and_expire(self):
