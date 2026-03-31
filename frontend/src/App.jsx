@@ -24,7 +24,9 @@ import Profile from "./pages/customer/Profile";
 import B2BApprovals from "./pages/admin/B2BApprovals";
 import B2BSettings from "./pages/admin/B2BSettings";
 import ProductDetail from "./pages/customer/ProductDetail";
+import Cart from "./pages/customer/Cart";
 import AnalyticsDashboard from "./pages/admin/analytics/Index";
+import ShippingLocations from "./pages/admin/shipping/Locations";
 
 function App() {
   return (
@@ -131,6 +133,14 @@ function App() {
             </CustomerLayout>
           }
         />
+        <Route
+          path="/customer/cart"
+          element={
+            <CustomerLayout>
+              <Cart />
+            </CustomerLayout>
+          }
+        />
 
         <Route
           path="/customer/orders"
@@ -143,6 +153,14 @@ function App() {
 
         <Route
           path="/customer/order/:productId"
+          element={
+            <CustomerLayout>
+              <OrderForm />
+            </CustomerLayout>
+          }
+        />
+        <Route
+          path="/customer/checkout/cart"
           element={
             <CustomerLayout>
               <OrderForm />
@@ -209,6 +227,16 @@ function App() {
             <RoleProtectedRoute allowedRoles={["admin"]}>
               <AdminLayout>
                 <AnalyticsDashboard />
+              </AdminLayout>
+            </RoleProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/shipping-locations"
+          element={
+            <RoleProtectedRoute allowedRoles={["admin"]}>
+              <AdminLayout>
+                <ShippingLocations />
               </AdminLayout>
             </RoleProtectedRoute>
           }

@@ -2,12 +2,14 @@ import { useAuth } from "../auth/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import api from "../api/axios";
+import Icon from "./Icons";
 
 const Navbar = () => {
   const { isAuthenticated, logout, token } = useAuth();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [unseenCount, setUnseenCount] = useState(0);
+  const [cartCount, setCartCount] = useState(0);
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
@@ -20,16 +22,20 @@ const Navbar = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      const fetchUnseen = async () => {
+      const fetchCounts = async () => {
         try {
-          const res = await api.get("/appointments/unseen-count/");
-          setUnseenCount(res.data.unseen_count);
+          const [appointmentRes, cartRes] = await Promise.all([
+            api.get("/appointments/unseen-count/"),
+            api.get("/products/cart/")
+          ]);
+          setUnseenCount(appointmentRes.data.unseen_count);
+          setCartCount(cartRes.data.total_items || 0);
         } catch (err) {
-          console.error("Error fetching unseen count", err);
+          console.error("Error fetching counts", err);
         }
       };
-      fetchUnseen();
-      const interval = setInterval(fetchUnseen, 30000);
+      fetchCounts();
+      const interval = setInterval(fetchCounts, 15000); // Poll every 15s
       return () => clearInterval(interval);
     }
   }, [isAuthenticated]);
@@ -93,11 +99,11 @@ const Navbar = () => {
           alignItems: 'center',
           gap: '8px'
         }}
-
-        
         onClick={() => navigate('/')}
       >
-        <span style={{ fontSize: '1.2rem', opacity: 0.8 }}>✧</span>
+        <span style={{ opacity: 0.8, display: 'flex', alignItems: 'center' }}>
+            <Icon name="sparkle" size={24} color="var(--primary)" />
+        </span>
         VAAGAI
       </div>
 
@@ -227,6 +233,34 @@ const Navbar = () => {
                     borderRadius: '50%',
                   }} />
                 )}
+              </Link>
+              <Link to="/customer/cart" style={{ ...linkStyle, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <Icon name="cart" size={20} color="var(--text-main)" />
+                  {cartCount > 0 && (
+                    <span style={{
+                      position: 'absolute',
+                      top: '-6px',
+                      right: '-6px',
+                      background: 'var(--primary)',
+                      color: 'white',
+                      fontSize: '0.65rem',
+                      fontWeight: '900',
+                      minWidth: '15px',
+                      height: '15px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '2px',
+                      boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+                      border: '1.5px solid var(--bg-surface)'
+                    }}>
+                      {cartCount}
+                    </span>
+                  )}
+                </span>
+                Cart
               </Link>
               <div
                 onClick={() => navigate("/customer/profile")}

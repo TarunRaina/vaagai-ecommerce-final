@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react"
 import api from "../../api/axios"
 import { useAuth } from "../../auth/AuthContext"
+import Icon from "../../components/Icons"
+import Notification from "../../components/Notification"
 
 const Wishlist = () => {
   const { token } = useAuth();
   const [wishlist, setWishlist] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [notification, setNotification] = useState("");
+  const [notifType, setNotifType] = useState("success");
 
   useEffect(() => {
     fetchWishlist();
@@ -27,8 +31,22 @@ const Wishlist = () => {
     try {
       await api.delete(`/products/wishlist/delete/${id}/`);
       setWishlist(wishlist.filter(item => item.id !== id));
+      setNotifType("success");
+      setNotification("Removed from wishlist");
     } catch (err) {
-      console.error("Failed to remove item");
+      setNotifType("error");
+      setNotification("Failed to remove item");
+    }
+  };
+
+  const handleAddToCart = async (productId) => {
+    try {
+      await api.post("/products/cart/add/", { product_id: productId, quantity: 1 });
+      setNotifType("success");
+      setNotification("Added to cart!");
+    } catch (err) {
+      setNotifType("error");
+      setNotification("Failed to add to cart");
     }
   };
 
@@ -49,7 +67,9 @@ const Wishlist = () => {
 
       {wishlist.length === 0 ? (
         <div className="glass-panel" style={{ padding: '80px', textAlign: 'center', borderRadius: '32px', border: '1px dashed var(--border-subtle)' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '20px', opacity: 0.3 }}>❤️</div>
+          <div style={{ marginBottom: '20px', opacity: 0.3, display: 'flex', justifyContent: 'center' }}>
+            <Icon name="heartOutline" size={60} color="var(--primary)" />
+          </div>
           <h3 style={{ color: 'var(--text-main)', fontSize: '1.5rem', fontWeight: '800', marginBottom: '10px' }}>Your wishlist is empty</h3>
           <p style={{ color: 'var(--text-dim)', fontSize: '1rem' }}>Explore our collection and save your favorite pieces here.</p>
         </div>
@@ -74,7 +94,7 @@ const Wishlist = () => {
               <div style={{
                 height: '240px',
                 position: 'relative',
-                background: '#111',
+                background: '#fff',
                 overflow: 'hidden'
               }}>
                 {item.product.image && (
@@ -84,8 +104,9 @@ const Wishlist = () => {
                     style={{
                       width: "100%",
                       height: "100%",
-                      objectFit: "cover",
-                      transition: 'transform 0.5s ease'
+                      objectFit: "contain",
+                      transition: 'transform 0.5s ease',
+                      padding: '10px'
                     }}
                     className="product-img"
                   />
@@ -110,10 +131,10 @@ const Wishlist = () => {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '1.2rem',
                     }}
+                    title="Remove from wishlist"
                   >
-                    🗑️
+                    <Icon name="trash" size={20} color="#ff4444" />
                   </button>
                 </div>
               </div>
@@ -137,20 +158,39 @@ const Wishlist = () => {
                   lineHeight: '1.2'
                 }}>{item.product.name}</h4>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--text-main)' }}>₹ {parseFloat(item.product.price).toLocaleString()}</div>
-                  <a
-                    href={`/product/${item.product.id}`}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: 'auto' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--text-main)' }}>₹ {parseFloat(item.product.price).toLocaleString()}</div>
+                    <a
+                      href={`/product/${item.product.id}`}
+                      style={{
+                        color: 'var(--primary)',
+                        textDecoration: 'none',
+                        fontWeight: '800',
+                        fontSize: '0.85rem',
+                        letterSpacing: '1px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      VIEW DETAILS <Icon name="arrowRight" size={14} />
+                    </a>
+                  </div>
+                  
+                  <button
+                    onClick={() => handleAddToCart(item.product.id)}
+                    className="btn-premium"
                     style={{
-                      color: 'var(--primary)',
-                      textDecoration: 'none',
-                      fontWeight: '800',
-                      fontSize: '0.9rem',
-                      letterSpacing: '1px'
+                      width: '100%',
+                      padding: '12px',
+                      borderRadius: '12px',
+                      fontSize: '0.85rem',
+                      fontWeight: '800'
                     }}
                   >
-                    VIEW DETAILS →
-                  </a>
+                    ADD TO CART
+                  </button>
                 </div>
               </div>
             </div>
@@ -169,6 +209,7 @@ const Wishlist = () => {
           transform: scale(1.05);
         }
       `}</style>
+      <Notification message={notification} type={notifType} onClose={() => setNotification("")} />
     </div>
   );
 }

@@ -4,12 +4,16 @@ import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     AreaChart, Area, PieChart, Pie, Cell
 } from "recharts";
-import { TrendingUp, Users, ShoppingBag, IndianRupee, AlertTriangle, Star, CheckCircle } from "lucide-react";
+import { TrendingUp, Users, ShoppingBag, IndianRupee, AlertTriangle, Star, CheckCircle, MapPin, ChevronLeft, ChevronRight } from "lucide-react";
 
 const AnalyticsDashboard = () => {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [generating, setGenerating] = useState(false);
+
+    const [dayOffset, setDayOffset] = useState(0);
+    const [dailyData, setDailyData] = useState([]);
+    const [dailyLoading, setDailyLoading] = useState(true);
 
     useEffect(() => {
         const fetchAnalytics = async () => {
@@ -24,6 +28,27 @@ const AnalyticsDashboard = () => {
         };
         fetchAnalytics();
     }, []);
+
+    useEffect(() => {
+        fetchDailyTrends();
+    }, [dayOffset]);
+
+    const fetchDailyTrends = async () => {
+        try {
+            setDailyLoading(true);
+            const res = await api.get(`/analytics/daily-trends/?days=14&offset=${dayOffset}`);
+            setDailyData(res.data.data);
+        } catch (err) {
+            console.error("Daily trends failed", err);
+        } finally {
+            setDailyLoading(false);
+        }
+    };
+
+    const handleScroll = (dir) => {
+        if (dir === 'left') setDayOffset(prev => prev + 14);
+        else if (dir === 'right') setDayOffset(prev => Math.max(0, prev - 14));
+    };
 
     const handleExportReport = async () => {
         setGenerating(true);
@@ -158,6 +183,98 @@ const AnalyticsDashboard = () => {
                 </div>
             </div>
 
+            {/* Daily Revenue Precision */}
+            <div style={{ ...panelStyle, marginBottom: '30px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+                    <div>
+                        <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '900', letterSpacing: '-0.5px' }}>Revenue Precision</h3>
+                        <p style={{ color: '#999', fontSize: '0.85rem', margin: '4px 0 0' }}>Daily commercial throughput (14-day window)</p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <button 
+                            onClick={() => handleScroll('left')}
+                            style={{ 
+                                padding: '8px', 
+                                border: '1px solid var(--border-cohesive)', 
+                                borderRadius: '10px', 
+                                background: '#fff', 
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center'
+                            }}
+                        >
+                            <ChevronLeft size={18} />
+                        </button>
+                        <button 
+                            onClick={() => handleScroll('right')}
+                            disabled={dayOffset === 0}
+                            style={{ 
+                                padding: '8px', 
+                                border: '1px solid var(--border-cohesive)', 
+                                borderRadius: '10px', 
+                                background: '#fff', 
+                                cursor: dayOffset === 0 ? 'not-allowed' : 'pointer', 
+                                opacity: dayOffset === 0 ? 0.4 : 1,
+                                display: 'flex',
+                                alignItems: 'center'
+                            }}
+                        >
+                            <ChevronRight size={18} />
+                        </button>
+                    </div>
+                </div>
+                <div style={{ width: '100%', height: '320px', position: 'relative' }}>
+                    {dailyLoading && (
+                        <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.5)', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px' }}>
+                             <div className="spinner" style={{ width: '24px', height: '24px', border: '2px solid transparent', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                        </div>
+                    )}
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={dailyData}>
+                            <defs>
+                                <linearGradient id="dailyFlow" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.12} />
+                                    <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="5 5" vertical={false} stroke="rgba(0,0,0,0.03)" />
+                            <XAxis 
+                                dataKey="display" 
+                                axisLine={false} 
+                                tickLine={false} 
+                                tick={{ fill: '#999', fontSize: 10, fontWeight: '700' }}
+                                dy={10}
+                            />
+                            <YAxis 
+                                axisLine={false} 
+                                tickLine={false} 
+                                tick={{ fill: '#999', fontSize: 10, fontWeight: '700' }}
+                                tickFormatter={(val) => `₹${val >= 1000 ? val/1000 + 'k' : val}`}
+                                dx={-10}
+                            />
+                            <Tooltip 
+                                contentStyle={{ 
+                                    borderRadius: '16px', 
+                                    border: '1px solid var(--border-cohesive)', 
+                                    boxShadow: '0 10px 30px rgba(0,0,0,0.05)',
+                                    padding: '12px 16px'
+                                }}
+                                itemStyle={{ color: 'var(--primary)', fontWeight: '900' }}
+                                labelStyle={{ color: '#999', fontWeight: '800', fontSize: '0.75rem', marginBottom: '4px' }}
+                            />
+                            <Area 
+                                type="monotone" 
+                                dataKey="revenue" 
+                                stroke="var(--primary)" 
+                                strokeWidth={3} 
+                                fill="url(#dailyFlow)"
+                                animationDuration={800}
+                            />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+
             {/* Strategic Visualization Layer */}
             <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '30px', marginBottom: '30px' }}>
                 {/* Revenue Momentum Area Chart */}
@@ -219,7 +336,43 @@ const AnalyticsDashboard = () => {
                     </div>
                 </div>
 
-                {/* Category Revenue Bar Chart */}
+                {/* Regional Market Share integrated into Grid 1 */}
+                <div style={panelStyle}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '25px' }}>
+                        <MapPin size={20} color="var(--primary)" />
+                        <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '900' }}>Regional Market Share</h3>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                        {data.geography_performance && data.geography_performance.length > 0 ? (
+                            data.geography_performance.slice(0, 4).map((region, idx) => (
+                                <div key={idx} style={{ padding: '12px 15px', background: 'var(--bg-surface-elevated)', borderRadius: '12px', border: '1px solid var(--border-cohesive)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                        <span style={{ fontWeight: '800', fontSize: '0.8rem' }}>{region.name}</span>
+                                        <span style={{ color: 'var(--primary)', fontWeight: '900', fontSize: '0.8rem' }}>₹{region.revenue.toLocaleString()}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                        <div style={{ flex: 1, height: '3px', background: 'rgba(0,0,0,0.05)', borderRadius: '2px', overflow: 'hidden' }}>
+                                            <div style={{ 
+                                                width: `${(region.revenue / data.kpis.total_revenue) * 100}%`, 
+                                                height: '100%', 
+                                                background: 'var(--primary)',
+                                                borderRadius: '2px'
+                                            }} />
+                                        </div>
+                                        <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#999' }}>{region.orders}</span>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div style={{ color: '#999', fontSize: '0.85rem', textAlign: 'center', padding: '40px 0' }}>Analyzing...</div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Strategic Row 2: Category & Segmentation */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '30px', marginBottom: '30px' }}>
+                {/* Category Intelligence */}
                 <div style={panelStyle}>
                     <div style={{ marginBottom: '40px' }}>
                         <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '900', letterSpacing: '-0.5px' }}>Category Intelligence</h3>
@@ -254,10 +407,7 @@ const AnalyticsDashboard = () => {
                         </div>
                     )}
                 </div>
-            </div>
 
-            {/* Operational Metrics & Segmentation */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '30px' }}>
                 {/* Revenue Segmentation Donut */}
                 <div style={panelStyle}>
                     <h3 style={{ marginBottom: '30px', fontSize: '1.1rem', fontWeight: '900' }}>Segment Power</h3>
@@ -293,10 +443,13 @@ const AnalyticsDashboard = () => {
                         ))}
                     </div>
                 </div>
+            </div>
 
+            {/* Operational Metrics Row 3 */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '30px' }}>
                 {/* Top Products Simplified List */}
                 <div style={panelStyle}>
-                    <h3 style={{ marginBottom: '30px', fontSize: '1.1rem', fontWeight: '900' }}>Elite Assets</h3>
+                    <h3 style={{ marginBottom: '30px', fontSize: '1.25rem', fontWeight: '900' }}>Elite Assets</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         {data.top_products.map((p, idx) => (
                             <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>

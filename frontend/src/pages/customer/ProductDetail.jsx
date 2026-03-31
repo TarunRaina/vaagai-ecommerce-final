@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "../../api/axios";
 import { useAuth } from "../../auth/AuthContext";
 import Notification from "../../components/Notification";
+import Icon from "../../components/Icons";
 
 const ProductDetail = () => {
     const { id } = useParams();
@@ -15,6 +16,7 @@ const ProductDetail = () => {
 
     const [rating, setRating] = useState(5);
     const [comment, setComment] = useState("");
+    const [quantity, setQuantity] = useState(1);
 
     useEffect(() => {
         fetchProduct();
@@ -44,6 +46,22 @@ const ProductDetail = () => {
         } catch (err) {
             setNotifType("error");
             setNotification("Already in wishlist or error");
+        }
+    };
+
+    const handleAddToCart = async () => {
+        if (!isAuthenticated) {
+            setNotifType("error");
+            setNotification("Please login to add to cart");
+            return;
+        }
+        try {
+            await api.post("/products/cart/add/", { product_id: id, quantity });
+            setNotifType("success");
+            setNotification("Added to cart!");
+        } catch (err) {
+            setNotifType("error");
+            setNotification("Failed to add to cart");
         }
     };
 
@@ -88,14 +106,16 @@ const ProductDetail = () => {
                         borderRadius: '24px',
                         overflow: 'hidden',
                         border: '1px solid var(--border-strong)',
-                        background: '#f5f5f5',
+                        background: '#fff',
                         height: '500px',
                         marginBottom: '40px'
                     }}>
                         {product.image ? (
-                            <img src={product.image} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <img src={product.image} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '20px' }} />
                         ) : (
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '4rem' }}>🏺</div>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', opacity: 0.1 }}>
+                                <Icon name="vase" size={120} color="var(--text-main)" />
+                            </div>
                         )}
                     </div>
 
@@ -129,12 +149,25 @@ const ProductDetail = () => {
                     <div style={cardStyle}>
                         <div style={{ marginBottom: '28px' }}>
                             <h1 style={{ fontSize: '1.8rem', fontWeight: '900', margin: '0 0 12px 0', color: 'var(--text-main)' }}>{product.name}</h1>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <div style={{ color: 'var(--primary)', fontWeight: '900', fontSize: '1.1rem' }}>
-                                    {'★'.repeat(Math.round(product.average_rating))}{'☆'.repeat(5 - Math.round(product.average_rating))}
+                            {product.average_rating > 0 && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <div style={{ color: 'var(--primary)', display: 'flex', gap: '2px' }}>
+                                        {[...Array(5)].map((_, i) => (
+                                            <Icon 
+                                                key={i} 
+                                                name="star" 
+                                                size={16} 
+                                                color={i < Math.round(product.average_rating) ? 'var(--primary)' : 'var(--border-strong)'} 
+                                                strokeWidth={i < Math.round(product.average_rating) ? 0 : 2}
+                                                fill={i < Math.round(product.average_rating) ? 'var(--primary)' : 'none'}
+                                            />
+                                        ))}
+                                    </div>
+                                    <span style={{ fontSize: '0.82rem', fontWeight: '700', color: 'var(--text-dim)' }}>
+                                        ({product.review_count} {product.review_count === 1 ? 'review' : 'reviews'})
+                                    </span>
                                 </div>
-                                <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>({product.review_count} reviews)</span>
-                            </div>
+                            )}
                         </div>
 
                         <div style={{ marginBottom: '32px' }}>
@@ -151,24 +184,60 @@ const ProductDetail = () => {
                             )}
                         </div>
 
+                        <div style={{ marginBottom: '25px' }}>
+                          <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-dim)', fontWeight: '700', fontSize: '0.8rem', textTransform: 'uppercase' }}>Quantity</label>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(0,0,0,0.03)', padding: '10px 20px', borderRadius: '12px', width: 'fit-content' }}>
+                            <button 
+                              onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                              style={{ background: 'none', border: 'none', color: 'var(--text-main)', cursor: 'pointer', fontSize: '1.2rem', fontWeight: '700' }}
+                            >-</button>
+                            <span style={{ fontWeight: '800', color: 'var(--text-main)', minWidth: '20px', textAlign: 'center' }}>{quantity}</span>
+                            <button 
+                              onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
+                              style={{ background: 'none', border: 'none', color: 'var(--text-main)', cursor: 'pointer', fontSize: '1.2rem', fontWeight: '700' }}
+                            >+</button>
+                          </div>
+                        </div>
+
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            <button
-                                onClick={() => navigate(`/customer/order/${product.id}`)}
-                                disabled={product.stock === 0}
-                                style={{
-                                    background: product.stock === 0 ? 'var(--border-strong)' : 'var(--primary)',
-                                    color: '#fff',
-                                    padding: '18px',
-                                    borderRadius: '14px',
-                                    fontWeight: '900',
-                                    border: 'none',
-                                    cursor: product.stock === 0 ? 'default' : 'pointer',
-                                    fontSize: '1rem',
-                                    boxShadow: product.stock === 0 ? 'none' : '0 8px 24px rgba(184, 134, 11, 0.25)'
-                                }}
-                            >
-                                {product.stock === 0 ? 'OUT OF STOCK' : 'ORDER NOW'}
-                            </button>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                              <button
+                                  onClick={handleAddToCart}
+                                  disabled={product.stock === 0}
+                                  style={{
+                                      background: 'rgba(0,0,0,0.03)',
+                                      color: product.stock === 0 ? '#BBB' : 'var(--text-main)',
+                                      padding: '18px',
+                                      borderRadius: '14px',
+                                      fontWeight: '900',
+                                      border: '1.5px solid var(--border-strong)',
+                                      cursor: product.stock === 0 ? 'default' : 'pointer',
+                                      fontSize: '0.9rem',
+                                      transition: 'all 0.2s ease'
+                                  }}
+                                  onMouseEnter={e => { if (product.stock > 0) { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary)'; } }}
+                                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-strong)'; e.currentTarget.style.color = 'var(--text-main)'; }}
+                              >
+                                  ADD TO CART
+                              </button>
+                              <button
+                                  onClick={() => navigate(`/customer/order/${product.id}`)}
+                                  disabled={product.stock === 0}
+                                  style={{
+                                      background: product.stock === 0 ? 'var(--border-strong)' : 'var(--primary)',
+                                      color: '#fff',
+                                      padding: '18px',
+                                      borderRadius: '14px',
+                                      fontWeight: '900',
+                                      border: 'none',
+                                      cursor: product.stock === 0 ? 'default' : 'pointer',
+                                      fontSize: '0.9rem',
+                                      boxShadow: product.stock === 0 ? 'none' : '0 8px 24px rgba(184, 134, 11, 0.25)'
+                                  }}
+                              >
+                                  BUY NOW
+                              </button>
+                            </div>
                             <button
                                 onClick={handleWishlist}
                                 style={{
@@ -176,12 +245,19 @@ const ProductDetail = () => {
                                     color: 'var(--text-main)',
                                     padding: '16px',
                                     borderRadius: '14px',
-                                    fontWeight: '700',
+                                    fontWeight: '800',
                                     border: '1.5px solid var(--border-strong)',
-                                    cursor: 'pointer'
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '10px',
+                                    transition: 'all 0.2s ease'
                                 }}
+                                onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--primary)'}
+                                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-strong)'}
                             >
-                                ♡ SAVE TO WISHLIST
+                                <Icon name="heartOutline" size={18} color="var(--primary)" /> SAVE TO WISHLIST
                             </button>
                         </div>
 

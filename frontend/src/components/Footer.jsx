@@ -61,7 +61,7 @@ const Footer = () => {
                     <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '15px' }}>
                         <li style={{ color: 'var(--text-dim)', fontSize: '0.9rem', fontWeight: '600' }}>Email: <span style={{ color: 'var(--text-main)' }}>concierge@vaagai.com</span></li>
                         <li style={{ color: 'var(--text-dim)', fontSize: '0.9rem', fontWeight: '600' }}>Phone: <span style={{ color: 'var(--text-main)' }}>+91 98765 43210</span></li>
-                        <li style={{ color: 'var(--text-dim)', fontSize: '0.9rem', fontWeight: '600' }}>Location: <span style={{ color: 'var(--text-main)' }}>Chennai, Tamil Nadu</span></li>
+                        <li style={{ color: 'var(--text-dim)', fontSize: '0.9rem', fontWeight: '600' }}>Location: <span style={{ color: 'var(--text-main)' }}>Perundurai, Erode, Tamil Nadu</span></li>
                     </ul>
                 </div>
 

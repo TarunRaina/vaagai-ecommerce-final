@@ -9,16 +9,31 @@ const Orders = () => {
 
   const [orders, setOrders] = useState([]);
   const [filter, setFilter] = useState("all");
+  const [notifType, setNotifType] = useState("success");
+
+  // Get today's date in YYYY-MM-DD format for local timezone comparison
+  const todayStr = new Date().toLocaleDateString('en-CA'); // en-CA gives YYYY-MM-DD
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchOrders();
+    markOrdersAsSeen();
   }, []);
+
+  const markOrdersAsSeen = async () => {
+    try {
+      await api.post("/orders/admin/mark-seen/", {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch (err) {
+      console.error("Failed to mark orders as seen", err);
+    }
+  };
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const res = await api.get("/orders/admin/all/", {
+      const res = await api.get("/orders/admin/list/", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setOrders(res.data);
@@ -31,15 +46,16 @@ const Orders = () => {
 
   const filteredOrders = orders.filter((order) => {
     if (filter === "unpaid") return order.payment_status === "unpaid";
-    if (filter === "completed") return order.received_status === "received";
+    if (filter === "shipped") return order.received_status === "shipped";
+    if (filter === "completed") return order.received_status === "delivered";
     return true;
   });
 
   const stats = [
     { label: "Total Orders", value: orders.length, color: "var(--primary)", icon: "orders" },
     { label: "Unpaid", value: orders.filter(o => o.payment_status === "unpaid").length, color: "#dc2626", icon: "dollar" },
-    { label: "Completed", value: orders.filter(o => o.received_status === "received").length, color: "#16a34a", icon: "check" },
-    { label: "Today", value: orders.filter(o => new Date(o.created_at).toDateString() === new Date().toDateString()).length, color: "#2563eb", icon: "clock" },
+    { label: "Shipped", value: orders.filter(o => o.received_status === "shipped").length, color: "#2563eb", icon: "clock" },
+    { label: "Completed", value: orders.filter(o => o.received_status === "delivered").length, color: "#16a34a", icon: "check" },
   ];
 
   const toggleOrder = (orderId) => {
@@ -55,13 +71,31 @@ const Orders = () => {
     } catch (err) { console.error("Failed to mark paid"); }
   };
 
-  const markReceived = async (orderId) => {
+  const markShipped = async (orderId) => {
     try {
-      await api.patch(`/orders/admin/mark-received/${orderId}/`, {}, {
+      await api.patch(`/orders/admin/mark-shipped/${orderId}/`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
       fetchOrders();
-    } catch (err) { console.error("Failed to mark received"); }
+    } catch (err) { console.error("Failed to mark shipped"); }
+  };
+
+  const markDelivered = async (orderId) => {
+    try {
+      await api.patch(`/orders/admin/mark-delivered/${orderId}/`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      fetchOrders();
+    } catch (err) { console.error("Failed to mark delivered"); }
+  };
+
+  const updateLogistics = async (orderId, estDate) => {
+    try {
+      await api.patch(`/orders/admin/logistics/${orderId}/`, { estimated_delivery: estDate }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      fetchOrders();
+    } catch (err) { console.error("Failed to update logistics"); }
   };
 
   return (
@@ -72,7 +106,7 @@ const Orders = () => {
           <p style={{ color: '#999', marginTop: '4px', fontSize: '0.88rem' }}>Track and manage customer orders</p>
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
-          {["all", "unpaid", "completed"].map((f) => (
+          {["all", "unpaid", "shipped", "completed"].map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -141,8 +175,9 @@ const Orders = () => {
                 <th style={{ padding: '18px 25px', fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Order ID</th>
                 <th style={{ padding: '18px 25px', fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Customer</th>
                 <th style={{ padding: '18px 25px', fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Summary</th>
-                <th style={{ padding: '18px 25px', fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Total Amount</th>
-                <th style={{ padding: '18px 25px', fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Status</th>
+                      <th style={{ textAlign: "left", padding: "15px 24px", color: "var(--text-dim)", fontSize: "0.75rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1px" }}>Total Amount</th>
+                      <th style={{ textAlign: "left", padding: "15px 24px", color: "var(--text-dim)", fontSize: "0.75rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1px" }}>Expected Delivery</th>
+                      <th style={{ textAlign: "left", padding: "15px 24px", color: "var(--text-dim)", fontSize: "0.75rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1px" }}>Status</th>
                 <th style={{ padding: '18px 25px', fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Actions</th>
               </tr>
             </thead>
@@ -151,15 +186,28 @@ const Orders = () => {
               {filteredOrders.map((order) => (
                 <React.Fragment key={order.id}>
                   <tr
+                    key={order.id}
                     style={{
                       cursor: "pointer",
-                      borderBottom: '1px solid rgba(255,255,255,0.03)',
-                      background: expandedOrder === order.id ? "var(--bg-surface-elevated)" : "transparent",
-                      transition: 'all 0.2s'
+                      borderBottom: "1px solid var(--border-subtle)",
+                      transition: "all 0.2s",
+                      background: !order.is_seen ? 'rgba(184,134,11,0.03)' : (expandedOrder === order.id ? "var(--bg-surface-elevated)" : "transparent"),
                     }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = !order.is_seen ? 'rgba(184,134,11,0.05)' : "var(--bg-surface-elevated)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = !order.is_seen ? 'rgba(184,134,11,0.03)' : (expandedOrder === order.id ? "var(--bg-surface-elevated)" : "transparent"))}
                     onClick={() => toggleOrder(order.id)}
                   >
-                    <td style={{ padding: '20px 25px', fontWeight: '800', color: 'var(--primary)' }}>#{order.id}</td>
+                    <td style={{ padding: "20px 25px" }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {!order.is_seen && (
+                          <span style={{ 
+                            width: '8px', height: '8px', borderRadius: '50%', background: 'var(--primary)',
+                            boxShadow: '0 0 8px var(--primary)'
+                          }}></span>
+                        )}
+                        <span style={{ fontWeight: "800", color: "var(--text-main)" }}>#{order.id}</span>
+                      </div>
+                    </td>
                     <td style={{ padding: '20px 25px' }}>
                       <div style={{ fontWeight: "700", color: 'var(--text-main)' }}>{order.user_name || "Guest"}</div>
                       <div style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>{order.user_email}</div>
@@ -172,9 +220,25 @@ const Orders = () => {
                       </div>
                     </td>
 
-                    <td style={{ padding: '20px 25px', fontWeight: "800", fontSize: '1.05rem' }}>₹{Number(order.total_amount).toLocaleString()}</td>
-
+                    <td style={{ padding: '20px 25px', fontWeight: '800', color: 'var(--text-main)' }}>₹{parseFloat(order.total_amount).toLocaleString()}</td>
                     <td style={{ padding: '20px 25px' }}>
+                      {order.estimated_delivery ? (
+                        <div style={{ 
+                          display: 'flex', alignItems: 'center', gap: '6px',
+                          color: (order.estimated_delivery === todayStr && order.received_status !== 'delivered') ? '#dc2626' : 'var(--text-main)',
+                          fontWeight: '700', fontSize: '0.85rem'
+                        }}>
+                          <Icon name="clock" size={14} color="currentColor" />
+                          {new Date(order.estimated_delivery).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                          {order.estimated_delivery === todayStr && order.received_status !== 'delivered' && (
+                            <span style={{ fontSize: '0.65rem', background: '#dc2626', color: '#fff', padding: '1px 5px', borderRadius: '4px', marginLeft: '4px', animation: 'pulse 2s infinite' }}>TODAY</span>
+                          )}
+                        </div>
+                      ) : (
+                        <span style={{ color: '#BBB', fontSize: '0.8rem', fontStyle: 'italic' }}>Not Set</span>
+                      )}
+                    </td>
+                    <td style={{ padding: "20px 25px" }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         <span style={{
                           padding: "4px 10px", borderRadius: "20px", fontSize: "0.7rem", fontWeight: "900", textAlign: 'center', width: 'fit-content',
@@ -184,14 +248,28 @@ const Orders = () => {
                         }}>
                           {order.payment_status.toUpperCase()}
                         </span>
-                        <span style={{
-                          padding: "4px 10px", borderRadius: "20px", fontSize: "0.7rem", fontWeight: "900", textAlign: 'center', width: 'fit-content',
-                          background: order.received_status === "received" ? "rgba(74, 222, 128, 0.1)" : "var(--bg-surface-elevated)",
-                          color: order.received_status === "received" ? "#16a34a" : "var(--text-muted)",
-                          border: `1px solid ${order.received_status === "received" ? 'rgba(74, 222, 128, 0.2)' : 'var(--border-strong)'}`
-                        }}>
-                          {order.received_status.toUpperCase()}
-                        </span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                          <span style={{
+                            padding: "4px 10px", borderRadius: "20px", fontSize: "0.7rem", fontWeight: "900", textAlign: 'center', width: 'fit-content',
+                            background: order.received_status === "delivered" ? "rgba(74, 222, 128, 0.1)" : 
+                                        order.received_status === "shipped" ? "rgba(37, 99, 235, 0.08)" : "var(--bg-surface-elevated)",
+                            color: order.received_status === "delivered" ? "#16a34a" : 
+                                   order.received_status === "shipped" ? "#2563eb" : "var(--text-muted)",
+                            border: `1px solid ${order.received_status === "delivered" ? 'rgba(74, 222, 128, 0.2)' : 
+                                                order.received_status === "shipped" ? 'rgba(37, 99, 235, 0.2)' : 'var(--border-strong)'}`
+                          }}>
+                            {order.received_status.toUpperCase()}
+                          </span>
+                          {order.estimated_delivery === todayStr && order.received_status !== 'delivered' && (
+                            <span style={{
+                              padding: "2px 8px", borderRadius: "4px", fontSize: "0.6rem", fontWeight: "900", 
+                              background: '#ef4444', color: '#fff', textAlign: 'center', width: 'fit-content',
+                              animation: 'pulse 2s infinite'
+                            }}>
+                              DUE TODAY
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </td>
 
@@ -207,12 +285,27 @@ const Orders = () => {
                         )}
                         {order.received_status === "pending" && (
                           <button
-                            onClick={() => markReceived(order.id)}
-                            style={{ background: "var(--primary)", color: "#000", border: "none", padding: "8px 12px", borderRadius: "8px", cursor: "pointer", fontSize: '0.75rem', fontWeight: '800' }}
+                            onClick={() => markShipped(order.id)}
+                            style={{ background: "#2563eb", color: "#fff", border: "none", padding: "8px 12px", borderRadius: "8px", cursor: "pointer", fontSize: '0.75rem', fontWeight: '800' }}
                           >
                             SHIP
                           </button>
                         )}
+                        {order.received_status === "shipped" ? (
+                          <button
+                            onClick={() => markDelivered(order.id)}
+                            style={{ background: "#16a34a", color: "#fff", border: "none", padding: "8px 12px", borderRadius: "8px", cursor: "pointer", fontSize: '0.75rem', fontWeight: '800' }}
+                          >
+                            DELIVERED
+                          </button>
+                        ) : order.received_status === "delivered" ? (
+                          <button
+                            disabled
+                            style={{ background: "#e5e7eb", color: "#9ca3af", border: "none", padding: "8px 12px", borderRadius: "8px", cursor: "default", fontSize: '0.75rem', fontWeight: '800' }}
+                          >
+                            DELIVERED
+                          </button>
+                        ) : null}
                       </div>
                     </td>
                   </tr>
@@ -251,8 +344,33 @@ const Orders = () => {
                             <div>
                               <p style={{ margin: '0 0 10px 0' }}><strong style={{ color: 'var(--primary)' }}>DELIVERY:</strong> {order.delivery_method?.replace('_', ' ').toUpperCase()}</p>
                               {order.delivery_method === "home_delivery" && (
-                                <p style={{ margin: 0 }}><strong style={{ color: 'var(--primary)' }}>ADDRESS:</strong> <span style={{ color: 'var(--text-dim)' }}>{order.delivery_address}</span></p>
+                                <>
+                                  <p style={{ margin: '0 0 10px 0' }}><strong style={{ color: 'var(--primary)' }}>ADDRESS:</strong> <span style={{ color: 'var(--text-dim)' }}>{order.delivery_address}</span></p>
+                                  <p style={{ margin: 0 }}><strong style={{ color: 'var(--primary)' }}>PINCODE:</strong> <span style={{ color: 'var(--text-dim)' }}>{order.pincode}</span></p>
+                                </>
                               )}
+                              
+                              <div style={{ marginTop: '20px', padding: '15px', background: 'rgba(0,0,0,0.02)', borderRadius: '10px', border: '1px dashed var(--border-cohesive)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                                  <strong style={{ fontSize: '0.8rem', color: 'var(--primary)' }}>ESTIMATED DELIVERY:</strong>
+                                  <input 
+                                    type="date" 
+                                    defaultValue={order.estimated_delivery} 
+                                    onChange={(e) => updateLogistics(order.id, e.target.value)}
+                                    style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-cohesive)', fontSize: '0.8rem' }}
+                                  />
+                                </div>
+                                {order.shipped_at && (
+                                  <p style={{ margin: '5px 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                    <strong>Shipped:</strong> {new Date(order.shipped_at).toLocaleString()}
+                                  </p>
+                                )}
+                                {order.delivered_at && (
+                                  <p style={{ margin: '5px 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                    <strong>Delivered:</strong> {new Date(order.delivered_at).toLocaleString()}
+                                  </p>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>

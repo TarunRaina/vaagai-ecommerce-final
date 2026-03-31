@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Product, Category, Wishlist, Review
+from .models import Product, Category, Wishlist, Review, Cart, CartItem
 from django.db.models import Avg, Sum, F
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -96,3 +96,61 @@ class WishlistSerializer(serializers.ModelSerializer):
     class Meta:
         model = Wishlist
         fields = ['id', 'product', 'product_id', 'created_at']
+
+class CartItemSerializer(serializers.ModelSerializer):
+    product = ProductSerializer(read_only=True)
+    product_id = serializers.PrimaryKeyRelatedField(
+        queryset=Product.objects.all(),
+        source='product',
+        write_only=True
+    )
+    item_total = serializers.SerializerMethodField()
+
+    def get_item_total(self, obj):
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        price = obj.product.price
+        
+        if user and user.is_authenticated and getattr(user, 'is_verified_business', False):
+            try:
+                from b2b.models import B2BDiscountSettings
+                from decimal import Decimal
+                settings = B2BDiscountSettings.objects.filter(id=1).first()
+                if not settings:
+                    settings, _ = B2BDiscountSettings.objects.get_or_create(id=1)
+                
+                # REUSE BULK LOGIC
+                if obj.quantity >= settings.bulk_threshold:
+                    discount = settings.bulk_discount_percent
+                else:
+                    discount = settings.base_discount_percent
+                    
+                discount_factor = Decimal('1') - (discount / Decimal('100'))
+                price = obj.product.price * discount_factor
+            except Exception:
+                pass
+        
+        return price * obj.quantity
+
+    class Meta:
+        model = CartItem
+        fields = ['id', 'product', 'product_id', 'quantity', 'item_total', 'added_at']
+
+class CartSerializer(serializers.ModelSerializer):
+    items = CartItemSerializer(many=True, read_only=True)
+    total_price = serializers.SerializerMethodField()
+    total_items = serializers.SerializerMethodField()
+
+    def get_total_price(self, obj):
+        # Pass the request context to the CartItemSerializer to calculate item_total correctly
+        # This requires creating a serializer instance for each item to access its get_item_total method
+        request = self.context.get('request')
+        total = sum(CartItemSerializer(item, context={'request': request}).get_item_total(item) for item in obj.items.all())
+        return total
+
+    def get_total_items(self, obj):
+        return sum(item.quantity for item in obj.items.all())
+
+    class Meta:
+        model = Cart
+        fields = ['id', 'items', 'total_price', 'total_items', 'updated_at']

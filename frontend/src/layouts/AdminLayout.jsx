@@ -9,17 +9,20 @@ const AdminLayout = ({ children }) => {
   const location = useLocation();
   const { logout, token } = useAuth();
   const [unseenCount, setUnseenCount] = useState(0);
+  const [unseenOrders, setUnseenOrders] = useState(0);
   const [pendingB2BCount, setPendingB2BCount] = useState(0);
 
   useEffect(() => {
     if (token) {
       const fetchData = async () => {
         try {
-          const [unseenRes, b2bRes] = await Promise.all([
+          const [unseenRes, b2bRes, orderUnseenRes] = await Promise.all([
             api.get("/appointments/unseen-count/"),
-            api.get("/b2b/admin/list/")
+            api.get("/b2b/admin/list/"),
+            api.get("/orders/admin/unseen-count/")
           ]);
           setUnseenCount(unseenRes.data.unseen_count);
+          setUnseenOrders(orderUnseenRes.data.unseen_count);
           setPendingB2BCount(b2bRes.data.filter(app => app.status === 'pending').length);
         } catch (err) {
           console.error("Error fetching admin counts", err);
@@ -35,10 +38,11 @@ const AdminLayout = ({ children }) => {
     { name: "Inventory", path: "/admin/dashboard", icon: "inventory" },
     { name: "Products", path: "/admin/products", icon: "products" },
     { name: "Users", path: "/admin/users", icon: "users" },
-    { name: "Orders", path: "/admin/orders", icon: "orders" },
+    { name: "Orders", path: "/admin/orders", icon: "orders", count: unseenOrders },
     { name: "Appointments", path: "/admin/appointments", icon: "appointments", count: unseenCount },
-    { name: "B2B Apps", path: "/admin/b2b-approvals", icon: "b2b", count: pendingB2BCount },
+    { name: "B2B Applications", path: "/admin/b2b-approvals", icon: "b2b", count: pendingB2BCount },
     { name: "Analytics", path: "/admin/analytics", icon: "analytics" },
+    { name: "Shipping Locations", path: "/admin/shipping-locations", icon: "locations" },
     { name: "B2B Settings", path: "/admin/b2b-settings", icon: "settings" },
   ];
 

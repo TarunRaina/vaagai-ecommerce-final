@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Order, OrderItem
+from .models import Order, OrderItem, ShippingState
 from products.models import Product
 from django.db import transaction
 
@@ -17,6 +17,31 @@ class OrderCreateSerializer(serializers.Serializer):
     delivery_method = serializers.CharField()
     payment_method = serializers.CharField()
     delivery_address = serializers.CharField(required=False, allow_blank=True)
+    pincode = serializers.CharField(required=False, allow_blank=True)
+
+    def validate(self, data):
+        if data.get("delivery_method") == "home_delivery":
+            pincode = data.get("pincode")
+            if not pincode:
+                raise serializers.ValidationError({"pincode": "Pincode is required for home delivery."})
+            
+            if not pincode.isdigit() or len(pincode) != 6:
+                raise serializers.ValidationError({"pincode": "Invalid pincode format. Must be 6 digits."})
+
+            # Check if state is served
+            from .utils import get_states_from_pincode
+            possible_states = get_states_from_pincode(pincode)
+            if not possible_states:
+                raise serializers.ValidationError({"pincode": "Invalid or unsupported pincode region."})
+
+            # Check if any of these states are active in our DB
+            active_shipping_states = ShippingState.objects.filter(is_active=True).values_list('name', flat=True)
+            is_served = any(state in active_shipping_states for state in possible_states)
+
+            if not is_served:
+                raise serializers.ValidationError({"pincode": f"Delivery currently not available for this region ({', '.join(possible_states)})."})
+
+        return data
 
     def create(self, validated_data):
         user = self.context['request'].user
@@ -29,7 +54,8 @@ class OrderCreateSerializer(serializers.Serializer):
                         installation_type=validated_data["installation_type"],
                         delivery_method=validated_data["delivery_method"],
                         payment_method=validated_data["payment_method"],
-                        delivery_address=validated_data.get("delivery_address", "")
+                        delivery_address=validated_data.get("delivery_address", ""),
+                        pincode=validated_data.get("pincode", "")
                     )
 
             total_amount = 0
@@ -75,15 +101,32 @@ class OrderCreateSerializer(serializers.Serializer):
             order.total_amount = total_amount
             order.save()
 
+            # --- CLEAR CART ---
+            from products.models import Cart
+            try:
+                cart = Cart.objects.get(user=user)
+                cart.items.all().delete()
+            except Cart.DoesNotExist:
+                pass
+
         return order
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source="product.name")
+    product_image = serializers.SerializerMethodField()
 
     class Meta:
         model = OrderItem
-        fields = ["id", "product", "product_name", "quantity", "price"]
+        fields = ["id", "product", "product_name", "product_image", "quantity", "price"]
+
+    def get_product_image(self, obj):
+        if obj.product.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.product.image.url)
+            return obj.product.image.url
+        return None
 
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -105,13 +148,22 @@ class OrderSerializer(serializers.ModelSerializer):
             "delivery_method",
             "payment_method",
             "delivery_address",
+            "pincode",
             "payment_status",
             "received_status",
             "total_amount",
             "total_items",
+            "estimated_delivery",
+            "shipped_at",
+            "delivered_at",
             "created_at",
             "items",
         ]
 
     def get_total_items(self, obj):
         return sum(item.quantity for item in obj.items.all())
+
+class ShippingStateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ShippingState
+        fields = ['id', 'name', 'is_active']

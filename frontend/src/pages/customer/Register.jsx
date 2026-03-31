@@ -1,3 +1,4 @@
+3
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../../api/axios";
@@ -29,6 +30,17 @@ const Register = () => {
     e.preventDefault();
     setError("");
 
+    // Validation Logic
+    if (!anyAlpha(formData.full_name)) {
+      setError("Full name must contain at least one letter.");
+      return;
+    }
+
+    if (!/^\d{10}$/.test(formData.mobile_number)) {
+      setError("Mobile number must be exactly 10 digits.");
+      return;
+    }
+
     if (formData.password !== formData.confirm_password) {
       setError("Passwords do not match");
       return;
@@ -40,11 +52,25 @@ const Register = () => {
       alert("Registration successful! Please login.");
       navigate("/login");
     } catch (err) {
-      setError(err.response?.data?.detail || "Registration failed. Please check your details.");
+      if (err.response?.data) {
+        // Handle field-specific errors from backend if they exist
+        const backendErrors = err.response.data;
+        let errorMsg = "";
+        if (typeof backendErrors === 'object') {
+          errorMsg = Object.values(backendErrors).flat().join(" ");
+        } else {
+          errorMsg = backendErrors.detail || "Registration failed.";
+        }
+        setError(errorMsg);
+      } else {
+        setError("Registration failed. Please check your details.");
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  const anyAlpha = (str) => /[a-zA-Z]/.test(str);
 
   return (
     <div style={{
@@ -81,7 +107,16 @@ const Register = () => {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px', marginBottom: '25px' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-dim)', textTransform: 'uppercase' }}>Mobile</label>
-              <input name="mobile_number" value={formData.mobile_number} onChange={handleChange} placeholder="+91..." required />
+              <input 
+                name="mobile_number" 
+                value={formData.mobile_number} 
+                onChange={handleChange} 
+                placeholder="10 digit number" 
+                maxLength="10"
+                pattern="\d{10}"
+                inputMode="numeric"
+                required 
+              />
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-dim)', textTransform: 'uppercase' }}>Account Type</label>

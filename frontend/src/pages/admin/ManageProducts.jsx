@@ -8,12 +8,24 @@ const ManageProducts = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [filterStock, setFilterStock] = useState("All");
+    const [filterCategory, setFilterCategory] = useState("All");
+    const [categories, setCategories] = useState([]);
     const [sortBy, setSortBy] = useState("Newest");
     const [expandedProduct, setExpandedProduct] = useState(null);
 
     useEffect(() => {
         fetchProducts();
+        fetchCategories();
     }, []);
+
+    const fetchCategories = async () => {
+        try {
+            const res = await api.get("/products/categories/");
+            setCategories(res.data);
+        } catch (err) {
+            console.error("Failed to fetch categories", err);
+        }
+    };
 
     const fetchProducts = async () => {
         try {
@@ -42,6 +54,10 @@ const ManageProducts = () => {
             if (filterStock === 'Out of Stock') return p.stock <= 0;
             return true;
         });
+    }
+
+    if (filterCategory !== 'All') {
+        result = result.filter(p => p.category?.id === parseInt(filterCategory));
     }
 
     result.sort((a, b) => {
@@ -115,6 +131,17 @@ const ManageProducts = () => {
                     <option value="In Stock">In Stock</option>
                     <option value="Low Stock">Low Stock</option>
                     <option value="Out of Stock">Out of Stock</option>
+                </select>
+
+                <select
+                    value={filterCategory}
+                    onChange={(e) => setFilterCategory(e.target.value)}
+                    style={{ padding: '11px 14px', background: 'var(--bg-surface)', border: '1.5px solid var(--border-cohesive)', borderRadius: '10px', fontSize: '0.85rem', width: 'auto' }}
+                >
+                    <option value="All">All Categories</option>
+                    {categories.map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
                 </select>
 
                 <select

@@ -2,6 +2,13 @@ from django.db import models
 from django.conf import settings
 from products.models import Product
 
+class ShippingState(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    is_active = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.name
+
 class Order(models.Model):
 
     PAYMENT_STATUS = (
@@ -9,9 +16,10 @@ class Order(models.Model):
         ('paid', 'Amount Paid'),
     )
 
-    RECEIVED_STATUS = (
+    DELIVERY_STATUS = (
         ('pending', 'Pending'),
-        ('received', 'Received'),
+        ('shipped', 'Shipped'),
+        ('delivered', 'Delivered'),
     )
 
     ORDER_TYPE = (
@@ -32,6 +40,7 @@ class Order(models.Model):
     PAYMENT_METHOD = (
         ('cod', 'Cash On Delivery'),
         ('razorpay', 'Razorpay'),
+        ('online', 'Online Payment (Mock)'),
     )
 
     user = models.ForeignKey(
@@ -50,6 +59,8 @@ class Order(models.Model):
 
     # ⭐ NEW FIELD
     delivery_address = models.TextField(blank=True, null=True)
+    pincode = models.CharField(max_length=10, blank=True, null=True)
+    is_seen = models.BooleanField(default=False)
 
     total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
 
@@ -61,11 +72,21 @@ class Order(models.Model):
 
     received_status = models.CharField(
         max_length=20,
-        choices=RECEIVED_STATUS,
+        choices=DELIVERY_STATUS,
         default='pending'
     )
 
+    estimated_delivery = models.DateField(blank=True, null=True)
+    shipped_at = models.DateTimeField(blank=True, null=True)
+    delivered_at = models.DateTimeField(blank=True, null=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        # Auto-default pincode for Shop Pickups if not provided
+        if self.delivery_method == 'shop_pickup' and not self.pincode:
+            self.pincode = '638112' # Default to Perundurai (Tamil Nadu)
+        super().save(*args, **kwargs)
     
 class OrderItem(models.Model):
 

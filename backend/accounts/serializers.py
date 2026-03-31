@@ -20,6 +20,16 @@ class RegisterSerializer(serializers.ModelSerializer):
             'is_business_account', 'profile_image', 'password', 'confirm_password',
         ]
 
+    def validate_full_name(self, value):
+        if not any(char.isalpha() for char in value):
+             raise serializers.ValidationError("Full name must contain at least one letter.")
+        return value
+
+    def validate_mobile_number(self, value):
+        if not value.isdigit() or len(value) != 10:
+            raise serializers.ValidationError("Mobile number must be exactly 10 digits.")
+        return value
+
     def validate(self, data):
         if data['password'] != data['confirm_password']:
             raise serializers.ValidationError("Passwords do not match")

@@ -28,8 +28,8 @@ const Orders = () => {
     }
   };
 
-  const activeOrders = orders.filter((order) => order.received_status !== "received");
-  const orderHistory = orders.filter((order) => order.received_status === "received");
+  const activeOrders = orders.filter((order) => order.received_status !== "delivered");
+  const orderHistory = orders.filter((order) => order.received_status === "delivered");
 
   const handleMarkReceived = async (orderId) => {
     try {
@@ -44,7 +44,7 @@ const Orders = () => {
   };
 
   const getStatusBadge = (status, type) => {
-    const isSuccess = status === "paid" || status === "received" || status === "delivered";
+    const isSuccess = status === "paid" || status === "delivered";
     const isWarning = status === "pending" || status === "shipped";
 
     return (
@@ -86,7 +86,7 @@ const Orders = () => {
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
           {getStatusBadge(order.payment_status, 'payment')}
-          {getStatusBadge(order.received_status, 'received')}
+          {getStatusBadge(order.received_status, 'delivery')}
         </div>
       </div>
 
@@ -106,7 +106,7 @@ const Orders = () => {
           >
             <div style={{ width: '60px', height: '60px', borderRadius: '12px', overflow: 'hidden', background: '#111' }}>
               {item.product_image ? (
-                <img src={item.product_image} alt={item.product_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img src={item.product_image} alt={item.product_name} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '4px' }} />
               ) : (
                 <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-dim)' }}>📦</div>
               )}
@@ -120,19 +120,34 @@ const Orders = () => {
             </div>
           </div>
         ))}
+
+        <div style={{ 
+          marginTop: '10px', padding: '15px', 
+          background: 'rgba(255,255,255,0.02)', borderRadius: '16px',
+          border: '1px solid var(--border-subtle)', fontSize: '0.85rem'
+        }}>
+          {order.estimated_delivery && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <span style={{ color: 'var(--text-dim)' }}>Estimated Delivery:</span>
+              <span style={{ fontWeight: '800', color: 'var(--primary)' }}>{new Date(order.estimated_delivery).toLocaleDateString()}</span>
+            </div>
+          )}
+          {order.shipped_at && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <span style={{ color: 'var(--text-dim)' }}>Shipped On:</span>
+              <span>{new Date(order.shipped_at).toLocaleString()}</span>
+            </div>
+          )}
+          {order.delivered_at && (
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: 'var(--text-dim)' }}>Delivered On:</span>
+              <span style={{ color: '#10B981' }}>{new Date(order.delivered_at).toLocaleString()}</span>
+            </div>
+          )}
+        </div>
       </div>
 
-      {!isHistory && order.payment_status === "paid" && (
-        <div style={{ marginTop: '30px', borderTop: '1px solid var(--border-subtle)', paddingTop: '25px', display: 'flex', justifyContent: 'flex-end' }}>
-          <button
-            onClick={() => handleMarkReceived(order.id)}
-            className="btn-premium"
-            style={{ padding: '12px 25px', borderRadius: '14px', fontSize: '0.85rem' }}
-          >
-            CONFIRM RECEIPT
-          </button>
-        </div>
-      )}
+      {/* Removed Confirm Receipt button as only admin should mark delivered */}
     </div>
   );
 

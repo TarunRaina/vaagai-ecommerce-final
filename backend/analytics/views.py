@@ -76,10 +76,23 @@ class AnalyticsOverviewView(APIView):
                 "revenue": float(month_rev)
             })
 
-        # 5. Inventory & Operations
+        # 5. Geographical Intelligence (New)
+        from orders.utils import get_state_from_pincode
+        geo_data = {}
+        for order in commercial_query:
+            state = get_state_from_pincode(order.pincode)
+            if state not in geo_data:
+                geo_data[state] = {"name": state, "orders": 0, "revenue": 0}
+            geo_data[state]["orders"] += 1
+            geo_data[state]["revenue"] += float(order.total_amount or 0)
+        
+        geography_performance = sorted(geo_data.values(), key=lambda x: x['revenue'], reverse=True)
+
+        # 6. Inventory & Operations
         top_products = Product.objects.annotate(
+            revenue=Sum(F('orderitem__price') * F('orderitem__quantity'), filter=Q(orderitem__order__payment_status='paid')),
             sales_count=Count('orderitem', filter=Q(orderitem__order__payment_status='paid'))
-        ).order_by('-sales_count')[:5]
+        ).filter(revenue__gt=0).order_by('-revenue')[:5]
         
         low_stock_count = Product.objects.filter(stock__lt=10, is_active=True).count()
         
@@ -119,9 +132,10 @@ class AnalyticsOverviewView(APIView):
                         "id": p.id, 
                         "name": p.name, 
                         "sales": p.sales_count, 
-                        "revenue": float(p.sales_count * p.price)
+                        "revenue": float(p.revenue or 0)
                     } for p in top_products
                 ],
+                "geography_performance": geography_performance,
                 "appointment_health": appointment_stats,
                 "trends": trends
             }
@@ -183,3 +197,55 @@ class AnalyticsExecutiveReportView(APIView):
         response = HttpResponse(pdf_content, content_type='application/pdf')
         response['Content-Disposition'] = 'attachment; filename="Vaagai_Executive_Intelligence_Report.pdf"'
         return response
+
+class DailyTrendsView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        try:
+            days = int(request.query_params.get('days', 7))
+            offset = int(request.query_params.get('offset', 0))
+        except ValueError:
+            return Response({"error": "Invalid days or offset parameters"}, status=400)
+        
+        # Calculate the date range
+        # Use timezone.now().date() for the current date in the system's timezone
+        now_date = timezone.now().date()
+        end_date = now_date - timedelta(days=offset)
+        start_date = end_date - timedelta(days=days - 1)
+        
+        # Query orders in range
+        # Note: created_at is a DateTimeField, created_at__date extracts the date part
+        orders = Order.objects.filter(
+            payment_status='paid',
+            created_at__date__gte=start_date,
+            created_at__date__lte=end_date
+        ).values(date_only=F('created_at__date')).annotate(revenue=Sum('total_amount')).order_by('date_only')
+        
+        # Map existing data for quick lookup
+        data_map = {o['date_only'].strftime('%Y-%m-%d'): float(o['revenue']) for o in orders}
+        
+        # Fill in missing dates with zero revenue to ensure a continuous graph
+        trends = []
+        for i in range(days):
+            current_date = start_date + timedelta(days=i)
+            date_str = current_date.strftime('%Y-%m-%d')
+            display_date = current_date.strftime('%d %b') # Format: "15 Mar"
+            trends.append({
+                "date": date_str,
+                "display": display_date,
+                "revenue": data_map.get(date_str, 0)
+            })
+            
+        return Response({
+            "status": "success",
+            "data": trends,
+            "meta": {
+                "start_date": start_date.strftime('%Y-%m-%d'),
+                "end_date": end_date.strftime('%Y-%m-%d'),
+                "days": days,
+                "offset": offset,
+                "has_next": offset > 0, # Can scroll forward (towards today)
+                "has_prev": True        # Can always scroll backward
+            }
+        })
